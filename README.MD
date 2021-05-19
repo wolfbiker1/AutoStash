@@ -6,4 +6,4 @@
 
 # How does it work?
 
-# What features is it goind to provide?
+# What features is it going to provide?
