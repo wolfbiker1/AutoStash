@@ -1,6 +1,6 @@
 # Auto Stash
 
-# Dependency
+# Rust crate
 
 # What problem does it solve?
 
