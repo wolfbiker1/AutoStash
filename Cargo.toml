@@ -2,6 +2,7 @@
 
 members = [
 	"filewatch",
-	"auto_stash"
+	"auto_stash",
+	"diff_track"
 ]
 
