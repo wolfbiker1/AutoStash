@@ -1,23 +1,26 @@
 pub mod event_handle {
-    use diff::diff::FileDifferenceStore;
+    use store::store::Store;
+    use diff::diff;
+    use notify::DebouncedEvent;
+
     pub struct EventHandle {
-        event: any
+        event: DebouncedEvent
     }
 
     impl EventHandle {
-        pub fn new(event: any) -> EventHandle {
+        pub fn new(event: DebouncedEvent) -> EventHandle {
             EventHandle{event}
         }
 
         pub fn handle(&self) {
-            if is_modification() {
-                if is_directory() {
-                    on_dir_change();
+            if self.is_modification() {
+                if self.is_directory() {
+                    self.on_dir_change();
                 } else {
-                    on_file_change();
+                    self.on_file_change();
                 }
-            } else if is_removed() {
-                on_removed();
+            } else if self.is_removed() {
+                self.on_removed();
             }
         }
 
@@ -28,18 +31,18 @@ pub mod event_handle {
         }
     
         fn on_dir_change(&self) {
-            println!("Directory modified: {:?}", self.event.name);
+            println!("Directory modified: {:?}", self.event);
         }
     
         fn is_modification(&self) -> bool {
-            self.event.mask.contains(EventMask::MODIFY)
+            unimplemented!();
         }
     
         fn is_directory(&self) -> bool {
-            self.event.mask.contains(EventMask::ISDIR)
+            unimplemented!();
         }
         fn is_removed(&self) -> bool {
-            self.event.mask.contains(EventMask::DELETE)
+            unimplemented!();
         }
     }
 }

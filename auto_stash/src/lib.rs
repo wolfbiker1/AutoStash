@@ -1,10 +1,10 @@
-use std::{error::Error, fs};
+use std::error::Error;
 use std::time::Duration;
 
 use filewatch::FileWatch;
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
-    let watcher = FileWatch::new(config.debounce).expect("Failed to initialize inotify");
+    let mut watcher = FileWatch::new(config.debounce_time).expect("Failed to initialize inotify");
     watcher.start_watching(config.path);
 
     Ok(())
@@ -12,7 +12,7 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
 
 pub struct Config {
     pub path: String,
-    pub debounce: Duration
+    pub debounce_time: Duration
 }
 
 use std::env;
@@ -27,13 +27,11 @@ impl Config {
             None => return Err("Didn't get a path"),
         };
 
-        let debounce = match args.next() {
+        let debounce_time = match args.next() {
             Some(arg) => arg,
-            None => return Err("Didn't get a debounce"),
-        }.parse::<i32>()?;
+            None => return Err("Didn't get a debounce time"),
+        }.parse::<u64>().unwrap();
 
-        let case_sensitive = env::var("CASE_INSENSITIVE").is_err();
-
-        Ok(Config { path, debounce: Duration::from_secs(debounce) })
+        Ok(Config { path, debounce_time: Duration::from_secs(debounce_time) })
     }
 }

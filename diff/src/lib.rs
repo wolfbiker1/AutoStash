@@ -1,25 +1,22 @@
 pub mod diff {
-    use difference::{Changeset, Difference};
-    use std::collections::VecDeque;
+    use difference::{Changeset, Difference};    
     use std::error::Error;
-    use std::fs::File;
-    use std::io::prelude::*;
 
-    pub struct FileDifference {
+    pub struct LineDifference {
         path: String,
         line_number: i32,
         line: String,
         changed_line: String,
     }
 
-    impl FileDifference {
+    impl LineDifference {
         pub fn new(
             path: String,
             line_number: i32,
             line: String,
             changed_line: String,
-        ) -> FileDifference {
-            FileDifference {
+        ) -> LineDifference {
+            LineDifference {
                 path,
                 line_number,
                 line,
@@ -27,53 +24,23 @@ pub mod diff {
             }
         }
 
-        pub fn to_string(&self) -> String {
-            // TODO: String representation
+        pub fn to_stored_line_difference(&self) -> String {
+            // TODO: Serialization
+            unimplemented!();
+        }
+
+        pub fn to_line_difference(stored_line_difference: String) -> LineDifference {
+            // TODO: Deserialization
+            unimplemented!();
         }
     }
 
-    pub fn to_file_difference(file_difference: String) -> FileDifference {
-        // TODO: File difference conversion
-    }
-
-    pub fn find(path: String, other_path: String) -> Result<Error, FileDifference> {
-        // TODO: Open both files
+    pub fn find(path: String) -> Result<LineDifference, &'static str> {
+        // TODO:
         // Compare every line
         // let changeset = Changeset::new(line, changed_line, "");
         // Comparison: Difference::Same("") | Difference::Rem("") | Difference::Add("")
         // Max(path, other_path) #lines
-    }
-
-    pub struct FileDifferenceStore {
-        file_differences: VecDeque<FileDifference>,
-        store_path: String,
-    }
-
-    impl FileDifferenceStore {
-        pub fn new(store_path: String) -> FileDifferenceStore {
-            FileDifferenceStore {
-                file_differences: VecDeque::new(),
-                store_path,
-            }
-        }
-
-        pub fn revert(&mut self) -> Result<Error, ()> {
-            let file_difference = self.file_differences.pop_back();
-            // TODO: Revert difference
-            // Open the path in the file difference
-            // Revert line at line number from changed_line to line
-        }
-
-        pub fn store(&mut self, file_difference: FileDifference) {
-            self.file_differences.push_back(file_difference);
-            // TODO: Save to disk
-            // Use file at store_path
-            // Write file_difference string representation
-        }
-        pub fn load(&mut self) {
-            // TODO: Load from disk
-            // Read file at store_path
-            // For every line convert a file difference
-        }
+        unimplemented!();
     }
 }
