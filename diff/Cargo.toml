@@ -6,3 +6,4 @@ edition = "2018"
 
 [dependencies]
 difference = "2.0"
+singleton = "0.2.2"
