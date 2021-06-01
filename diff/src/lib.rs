@@ -1,6 +1,7 @@
 pub mod diff {
+    use difference::{Changeset, Difference};
     use std::collections::VecDeque;
-    use difference::{Difference, Changeset};
+    use std::error::Error;
     use std::fs::File;
     use std::io::prelude::*;
 
@@ -35,12 +36,12 @@ pub mod diff {
         // TODO: File difference conversion
     }
 
-    pub fn find(path: String, other_path: String) -> Result<Err, FileDifference> {
+    pub fn find(path: String, other_path: String) -> Result<Error, FileDifference> {
         // TODO: Open both files
         // Compare every line
         // let changeset = Changeset::new(line, changed_line, "");
         // Comparison: Difference::Same("") | Difference::Rem("") | Difference::Add("")
-        // Max(path, other_path) #lines 
+        // Max(path, other_path) #lines
     }
 
     pub struct FileDifferenceStore {
@@ -50,14 +51,17 @@ pub mod diff {
 
     impl FileDifferenceStore {
         pub fn new(store_path: String) -> FileDifferenceStore {
-            FileDifferenceStore { file_differences: VecDeque::new(), store_path }
+            FileDifferenceStore {
+                file_differences: VecDeque::new(),
+                store_path,
+            }
         }
 
-        pub fn revert(&mut self) -> Result<Err, ()> {
+        pub fn revert(&mut self) -> Result<Error, ()> {
             let file_difference = self.file_differences.pop_back();
             // TODO: Revert difference
             // Open the path in the file difference
-            // Revert line at line number from changed_line to line 
+            // Revert line at line number from changed_line to line
         }
 
         pub fn store(&mut self, file_difference: FileDifference) {
