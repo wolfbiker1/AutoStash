@@ -1,10 +1,10 @@
 use std::{error::Error, fs};
 
-pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
-    let contents = fs::read_to_string(config.path)?;
+use filewatch::FileWatch;
 
-    let notifier = filewatch::init_inotify();
-    filewatch::start_watching("./", notifier);
+pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
+    let watcher = FileWatch::new().expect("Failed to initialize inotify");
+    watcher.start_watching(config.path);
 
     Ok(())
 }
