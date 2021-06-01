@@ -1,21 +1,28 @@
-use event_handle::event_handle::EventHandle;
-use inotify::{EventMask, Inotify, WatchMask};
+extern crate notify;
+
+use std::sync::mpsc::channel;
+use std::time::Duration;
 use std::path::Path;
+use std::sync::mpsc::channel;
+
+use notify::{Watcher, RecursiveMode, watcher};
+
+use event_handle::event_handle::EventHandle;
 pub struct FileWatch {
-    watchDog: inotify::Inotify,
+    recv: Receiver,
+    watchDog: Watcher,
 }
 impl FileWatch {
-    pub fn new() -> Result<FileWatch, Error> {
-        watchDog = Inotify::init()?;
-        Ok(FileWatch { watchDog })
+    pub fn new(debounce: Duration) -> Result<FileWatch, Error> {
+        let (tx, rx) = channel();
+        watchDog = watcher(tx, debounce)?;
+        Ok(FileWatch { recv: rx, watchDog })
     }
     pub fn start_watching(&self, dir: &str) {
         watch(dir);
 
-        let mut buffer = [0u8; 4096];
         loop {
-            let events = listen(buffer);
-            handle(events);
+            listen()
         }
     }
 
@@ -27,15 +34,14 @@ impl FileWatch {
     }
 
     fn watch(&self, dir: &str) {
-        self.watchdog
-            .add_watch(to_path(dir), WatchMask::MODIFY)
-            .expect("Failed to add inotify watch");
+        self.watchDog.watch(dir, RecursiveMode::Recursive)?;
     }
 
-    fn listen(&self, &mut buffer: [u8; 4096]) {
-        self.watchdog
-            .read_events_blocking(&mut buffer)
-            .expect("Failed to read inotify events");
+    fn listen(&self) {
+        match self.recv.recv() {
+           Ok(event) => handle(event),
+           Err(e) => println!("watch error: {:?}", e),
+        }
     }
 
     fn to_path(dir: &str) -> PathBuf {
