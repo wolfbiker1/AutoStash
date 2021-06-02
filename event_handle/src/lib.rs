@@ -2,7 +2,7 @@ pub mod event_handle {
     use std::{error::Error, path::PathBuf};
 
     use store::store::Store;
-    use diff::diff::{LineDifference, find};
+    use diff::diff::LineDifference;
     use notify::DebouncedEvent;
 
     pub struct EventHandle {
@@ -22,6 +22,7 @@ pub mod event_handle {
         }
 
         fn on_modification(&self, event: &DebouncedEvent) -> Result<(), String> {
+            //println!("{:?}", event);
             let path = self.to_path(&event)?;
             if self.is_modification(&event) {
                 if self.is_directory(path) {
