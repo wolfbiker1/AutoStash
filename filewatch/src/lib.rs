@@ -3,13 +3,13 @@ extern crate notify;
 use std::sync::mpsc::{channel, Receiver};
 use std::time::Duration;
 
-use notify::{watcher, DebouncedEvent, Error, ReadDirectoryChangesWatcher, RecursiveMode, Watcher};
+use notify::{watcher, DebouncedEvent, Error, RecommendedWatcher, RecursiveMode, Watcher};
 
 use event_handle::event_handle::EventHandle;
 pub struct FileWatch {
     event_handle: EventHandle,
     recv: Receiver<DebouncedEvent>,
-    watch_dog: ReadDirectoryChangesWatcher,
+    watch_dog: RecommendedWatcher,
 }
 impl FileWatch {
     pub fn new(debounce_time: Duration, event_handle: EventHandle) -> Result<FileWatch, Error> {
@@ -27,7 +27,7 @@ impl FileWatch {
         loop {
             match self.listen() {
                 Err(e) => eprintln!("{:?}", e),
-                _ => ()
+                _ => (),
             }
         }
     }
@@ -38,7 +38,8 @@ impl FileWatch {
 
     fn watch(&mut self, dir: &str) -> Result<(), String> {
         self.watch_dog
-            .watch(dir, RecursiveMode::Recursive).map_err(|err| {format!("watch error: {:?}", err)})
+            .watch(dir, RecursiveMode::Recursive)
+            .map_err(|err| format!("watch error: {:?}", err))
     }
 
     fn listen(&self) -> Result<(), String> {
