@@ -11,7 +11,7 @@ pub struct AutoStash {
 
 impl AutoStash {
     pub fn new(config: &Config) -> Result<AutoStash, Box<dyn std::error::Error>> {
-        let store = Store::new(config.store_path.as_str());
+        let store = Store::new(config.store_path.as_str(), config.watch_path.as_str())?;
         let event_handle = EventHandle::new(store);
         let watch = FileWatch::new(config.debounce_time, event_handle)?;
 
