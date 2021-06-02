@@ -51,7 +51,6 @@ version = "0.1.0"
 dependencies = [
  "difference",
  "serde",
- "singleton",
 ]
 
 [[package]]
@@ -417,12 +416,6 @@ dependencies = [
  "serde",
  "yaml-rust",
 ]
-
-[[package]]
-name = "singleton"
-version = "0.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6f1461e8ad1dd749f15b9baff1efc0bc88f0a0894433cb49c07c0cece1cc3ef6"
 
 [[package]]
 name = "slab"
