@@ -7,22 +7,25 @@ pub mod store {
     use std::str::FromStr;
     use walkdir::{DirEntry, WalkDir};
 
-    static LAST_EDITED_FILE: &str = "LAST_EDITED_FILE";
+    static CHANGES_QUEUE: &str = "CHANGES_QUEUE";
 
     pub struct Store {
         db: PickleDb,
     }
 
-    fn version_zero(store_path: &str, watch_path: &str) -> Result<PickleDb, std::io::Error> {
+    fn version_zero(store_path: &str, watch_path: &str) -> PickleDb {
         let mut db = PickleDb::new(
             store_path,
             PickleDbDumpPolicy::AutoDump,
             SerializationMethod::Json,
         );
 
+        db.lcreate(CHANGES_QUEUE)
+            .expect("could not create change queue");
+
         store_all_files(watch_path, &mut db);
 
-        Ok(db)
+        db
     }
 
     fn store_all_files(watch_path: &str, db: &mut PickleDb) {
@@ -83,49 +86,47 @@ pub mod store {
     }
 
     impl Store {
-        pub fn new(store_path: &str, watch_path: &str) -> Result<Store, std::io::Error> {
+        pub fn new(store_path: &str, watch_path: &str) -> Store {
             let db = match load(store_path) {
-                Ok(db) => Ok(db),
+                Ok(db) => db,
                 Err(_) => version_zero(store_path, watch_path),
             };
 
-            match db {
-                Err(e) => Err(e),
-                Ok(db) => Ok(Store { db }),
-            }
+            Store { db }
         }
 
         pub fn revert(&mut self) -> Result<Option<LineDifference>, &str> {
-            if !self.db.exists(LAST_EDITED_FILE) {
-                return Err("");
-            }
-            let last_edited_file = self
-                .last_edited_file()
-                .ok_or_else(|| "No last edited file found")?;
-
             // TODO: check if this is necessary (finding the latest file change)
-            let last = self
-                .by_file(last_edited_file.as_str())
-                .into_iter()
-                // TODO: use chrone date time for comparison
-                .sorted_by(|a, b| Ord::cmp(a.date_time.as_str(), b.date_time.as_str()))
-                .len()
-                - 1;
+            let change_queue = self.change_queue();
+            let last = change_queue.last().ok_or_else(|| "")?;
+            let last_pos = self
+                .all_by_key(CHANGES_QUEUE)
+                .iter()
+                .find_position(|line| {
+                    line.path.eq(last.path.as_str()) && line.date_time.eq(last.date_time.as_str())
+                })
+                .map(|(pos, _)| pos)
+                .ok_or_else(|| "")?;
 
-            Ok(self.db.lpop(last_edited_file.as_str(), last))
+            Ok(self.db.lpop(CHANGES_QUEUE, last_pos))
         }
 
-        pub fn store(&mut self, line_difference: &LineDifference) -> Result<(), error::Error> {
+        pub fn store(&mut self, line_difference: &LineDifference) {
             self.db
                 .ladd(line_difference.path.as_str(), &line_difference);
-            self.db.set(LAST_EDITED_FILE, &line_difference.path)
+            self.db.ladd(CHANGES_QUEUE, &line_difference.path);
         }
 
-        fn last_edited_file(&mut self) -> Option<String> {
-            self.db.get(LAST_EDITED_FILE)
+        fn change_queue(&mut self) -> Vec<LineDifference> {
+            // TODO: use chrone date time for comparison
+            self.all_by_key(CHANGES_QUEUE)
+                .iter()
+                .sorted_by(|a, b| Ord::cmp(a.date_time.as_str(), b.date_time.as_str()))
+                .map(|line| line.clone())
+                .collect()
         }
 
-        pub fn by_file(&self, path: &str) -> Vec<LineDifference> {
+        pub fn all_by_key(&self, path: &str) -> Vec<LineDifference> {
             self.db
                 .liter(path)
                 .map(|line| line.get_item().unwrap())
