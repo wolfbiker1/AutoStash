@@ -13,7 +13,9 @@ dependencies = [
 name = "auto_stash"
 version = "0.1.0"
 dependencies = [
+ "event_handle",
  "filewatch",
+ "store",
 ]
 
 [[package]]

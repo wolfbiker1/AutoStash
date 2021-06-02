@@ -1,6 +1,6 @@
 use std::{env, process};
 
-use auto_stash::Config;
+use auto_stash::{AutoStash, Config};
 
 fn main() {
     let config = Config::new(env::args()).unwrap_or_else(|err| {
@@ -8,8 +8,12 @@ fn main() {
         process::exit(1);
     });
 
-    if let Err(e) = auto_stash::run(config) {
-        eprintln!("Application error: {}", e);
+    let mut auto_stash = AutoStash::new(&config).unwrap_or_else(|err| {
+        eprintln!("Problem creating auto stash: {:?}", err);
         process::exit(1);
-    }
+    });
+
+    auto_stash.run().unwrap_or_else(|err| {
+        eprintln!("Could not run auto stash: {:?}", err);
+    });
 }

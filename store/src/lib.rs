@@ -9,9 +9,9 @@ pub mod store {
     }
 
     impl Store {
-        pub fn new(store_path: String) -> Store {
+        pub fn new(store_path: &str) -> Store {
             let db = match PickleDb::load(
-                store_path.clone(),
+                store_path,
                 PickleDbDumpPolicy::DumpUponRequest,
                 SerializationMethod::Json,
             ) {
