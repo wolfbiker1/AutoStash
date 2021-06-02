@@ -1,8 +1,3 @@
-
-use std::fs::File;
-use std::io::prelude::*;
-
-
 pub mod store {
     use diff::diff::LineDifference;
     use std::collections::VecDeque;
