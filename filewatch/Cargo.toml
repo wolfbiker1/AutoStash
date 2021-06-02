@@ -1,0 +1,11 @@
+[package]
+name = "filewatch"
+version = "0.1.0"
+authors = ["wolfbiker1 <be631wil@htwg-konstanz.de>", "AlexanderBrese <admin@alexanderbrese.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+notify = "4.0.12"
+event_handle = { path = "../event_handle" }
