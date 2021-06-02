@@ -1,12 +1,14 @@
 pub mod diff {
     use difference::{Changeset, Difference};    
     use std::error::Error;
+    use serde::{Deserialize, Serialize};
 
+    #[derive(Serialize, Deserialize, Clone)]
     pub struct LineDifference {
-        path: String,
-        line_number: i32,
-        line: String,
-        changed_line: String,
+        pub path: String,
+        pub line_number: i32,
+        pub line: String,
+        pub changed_line: String,
     }
 
     impl LineDifference {
@@ -22,16 +24,6 @@ pub mod diff {
                 line,
                 changed_line,
             }
-        }
-
-        pub fn to_stored_line_difference(&self) -> String {
-            // TODO: Serialization
-            unimplemented!();
-        }
-
-        pub fn to_line_difference(stored_line_difference: String) -> LineDifference {
-            // TODO: Deserialization
-            unimplemented!();
         }
     }
 
