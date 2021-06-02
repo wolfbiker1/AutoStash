@@ -60,7 +60,7 @@ impl Config {
         Ok(Config {
             store_path,
             watch_path,
-            debounce_time: Duration::from_secs(debounce_time),
+            debounce_time: Duration::from_millis(debounce_time),
         })
     }
 }
