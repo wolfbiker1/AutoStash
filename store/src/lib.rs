@@ -62,7 +62,7 @@ pub mod store {
                 Ok(LineDifference::new(
                     String::from_str(path).unwrap(),
                     indexed_line.0,
-                    line.clone(),
+                    "".to_string(),
                     line,
                 ))
             })
