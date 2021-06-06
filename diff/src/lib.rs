@@ -1,6 +1,6 @@
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
-use std::fs::File;
+use std::fs::{remove_file, File};
 use std::io::Write;
 use std::io::{self, BufRead};
 
@@ -100,48 +100,51 @@ pub fn find(path: &str, line_differences: &Vec<LineDifference>) -> Vec<LineDiffe
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use std::fs::OpenOptions;
 
-    use super::*;
-
-    #[ctor::ctor]
-    fn init() {
-        let mut file = std::fs::File::create("data.txt").expect("create failed");
+    fn init(path: &str) {
+        let mut file = std::fs::File::create(path).expect("create failed");
         file.write_all("Hello World\n".repeat(10).as_bytes())
             .expect("write failed");
     }
-    #[test]
-    fn no_changes() {
-        let file = File::open("data.txt").unwrap();
-        let changes: Vec<LineDifference> = io::BufReader::new(&file)
+
+    fn read(path: &str) -> Vec<LineDifference> {
+        let file = File::open(path).unwrap();
+        io::BufReader::new(&file)
             .lines()
             .enumerate()
             .map(|(index, line)| {
                 let line = line.unwrap();
 
-                LineDifference::new("data.txt".to_string(), index + 1, line.clone(), line)
+                LineDifference::new(path.to_string(), index + 1, line.clone(), line)
             })
-            .collect();
+            .collect()
+    }
 
-        let new_changes: Vec<LineDifference> = find("data.txt", &changes);
+    fn remove(path: &str) -> std::io::Result<()> {
+        remove_file(path)?;
+        Ok(())
+    }
+    #[test]
+    fn no_changes() {
+        let path = "test.txt";
+        init(path);
+        let changes = read(path);
+
+        let new_changes: Vec<LineDifference> = find(path, &changes);
+        remove(path).unwrap();
 
         assert_eq!(new_changes, []);
     }
 
     #[test]
     fn changes() {
-        let file = File::open("data.txt").unwrap();
-        let changes: Vec<LineDifference> = io::BufReader::new(&file)
-            .lines()
-            .enumerate()
-            .map(|(index, line)| {
-                let line = line.unwrap();
+        let path = "test2.txt";
+        init(path);
+        let changes = read(path);
 
-                LineDifference::new("data.txt".to_string(), index + 1, line.clone(), line)
-            })
-            .collect();
-
-        let mut file = OpenOptions::new().write(true).open("data.txt").unwrap();
+        let mut file = OpenOptions::new().write(true).open(path).unwrap();
         let mut new_file_content: Vec<String> = changes
             .iter()
             .map(|line| line.line.to_string() + "\n")
@@ -153,12 +156,13 @@ mod tests {
                 .expect("Couldn't write to file.");
         });
 
-        let new_changes: Vec<LineDifference> = find("data.txt", &changes);
+        let new_changes: Vec<LineDifference> = find(path, &changes);
+        remove(path).unwrap();
 
         assert_eq!(
             new_changes,
             vec![LineDifference::new(
-                "data.txt".to_string(),
+                path.to_string(),
                 4,
                 "Hello World".to_string(),
                 "Hello W0rld".to_string()
@@ -167,8 +171,79 @@ mod tests {
     }
 
     #[test]
-    fn more_lines_than_differences() {}
+    fn more_lines_than_differences() {
+        let path = "test3.txt";
+        init(path);
+        let changes = read(path);
+
+        let mut file = OpenOptions::new().write(true).open(path).unwrap();
+        let new_file_content = [
+            changes
+                .iter()
+                .map(|line| line.clone().changed_line + "\n")
+                .collect(),
+            vec!["Hello World\n".to_string()],
+        ]
+        .concat();
+
+        new_file_content.iter().for_each(|line| {
+            file.write_all(line.as_bytes())
+                .expect("Couldn't write to file.");
+        });
+
+        let new_changes: Vec<LineDifference> = find(path, &changes);
+        remove(path).unwrap();
+
+        assert_eq!(
+            new_changes,
+            vec![LineDifference::new(
+                path.to_string(),
+                11,
+                "".to_string(),
+                "Hello World".to_string()
+            )]
+        );
+    }
 
     #[test]
-    fn more_differences_than_lines() {}
+    fn more_differences_than_lines() {
+        let path = "test4.txt";
+        init(path);
+
+        let changes: Vec<LineDifference> = [
+            read(path),
+            vec![LineDifference::new(
+                path.to_string(),
+                11,
+                "".to_string(),
+                "Hello World".to_string(),
+            )],
+        ]
+        .concat();
+
+        let new_changes: Vec<LineDifference> = find(path, &changes);
+        remove(path).unwrap();
+
+        assert_eq!(
+            new_changes,
+            vec![LineDifference::new(
+                path.to_string(),
+                11,
+                "Hello World".to_string(),
+                "".to_string()
+            )]
+        );
+    }
+
+    #[ignore]
+    #[test]
+    fn a_lot_of_lines() {
+        unimplemented!();
+    }
+
+    #[ignore]
+    #[test]
+    fn a_lot_of_differences() {
+        unimplemented!();
+    }
 }
