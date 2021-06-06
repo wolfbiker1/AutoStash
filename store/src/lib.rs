@@ -1,5 +1,5 @@
 pub mod store {
-    use diff::diff::LineDifference;
+    use diff::LineDifference;
     use itertools::Itertools;
     use pickledb::{error, PickleDb, PickleDbDumpPolicy, SerializationMethod};
     use std::fs::File;

@@ -1,7 +1,7 @@
 pub mod event_handle {
     use std::path::PathBuf;
 
-    use diff::diff::LineDifference;
+    use diff::LineDifference;
     use notify::DebouncedEvent;
     use store::store::Store;
 
