@@ -237,6 +237,12 @@ mod tests {
 
     #[ignore]
     #[test]
+    fn file_removed() {
+        unimplemented!();
+    }
+
+    #[ignore]
+    #[test]
     fn a_lot_of_lines() {
         unimplemented!();
     }

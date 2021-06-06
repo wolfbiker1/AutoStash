@@ -1,13 +1,15 @@
 pub mod store {
     use diff::LineDifference;
     use itertools::Itertools;
+    use pickledb::error::Error;
     use pickledb::{error, PickleDb, PickleDbDumpPolicy, SerializationMethod};
     use std::fs::File;
     use std::io::{self, BufRead};
     use std::str::FromStr;
     use walkdir::{DirEntry, WalkDir};
 
-    static CHANGES_QUEUE: &str = "CHANGES_QUEUE";
+    static CHANGE_PEEK_STACK: &str = "CHANGE_PEEK_STACK";
+    static CHANGE_MARKER: &str = "CHANGE_MARKER";
 
     pub struct Store {
         db: PickleDb,
@@ -20,8 +22,13 @@ pub mod store {
             SerializationMethod::Json,
         );
 
-        db.lcreate(CHANGES_QUEUE)
-            .expect("could not create change queue");
+        db.lcreate(CHANGE_PEEK_STACK)
+            .expect("could not create change peek stack");
+
+        db.lcreate(CHANGE_MARKER)
+            .expect("could not create change marker");
+        
+        db.set(CHANGE_MARKER, &0).unwrap_or_else(|err| panic!("could not set change marker: {}", err));
 
         store_all_files(watch_path, &mut db);
 
@@ -95,42 +102,53 @@ pub mod store {
             Store { db }
         }
 
-        pub fn revert(&mut self) -> Result<Option<LineDifference>, &str> {
-            // TODO: check if this is necessary (finding the latest file change)
-            let change_queue = self.change_queue();
-            let last = change_queue.last().ok_or_else(|| "")?;
-            let last_pos = self
-                .all_by_key(CHANGES_QUEUE)
-                .iter()
-                .find_position(|line| {
-                    line.path.eq(last.path.as_str()) && line.date_time.eq(last.date_time.as_str())
-                })
-                .map(|(pos, _)| pos)
-                .ok_or_else(|| "")?;
-
-            Ok(self.db.lpop(CHANGES_QUEUE, last_pos))
+        pub fn undo_by(&mut self, count: usize) {
+            // Peek stack backwards by count
+            // Undo line differences on the peeked files for certain versioning
+            // Decrement change marker by count
         }
 
-        pub fn store(&mut self, line_difference: &LineDifference) {
-            self.db
-                .ladd(line_difference.path.as_str(), &line_difference);
-            self.db.ladd(CHANGES_QUEUE, &line_difference.path);
+        pub fn undo(&mut self) {
+            self.undo_by(1)
         }
 
-        fn change_queue(&mut self) -> Vec<LineDifference> {
-            // TODO: use chrone date time for comparison
-            self.all_by_key(CHANGES_QUEUE)
-                .iter()
-                .sorted_by(|a, b| Ord::cmp(a.date_time.as_str(), b.date_time.as_str()))
-                .map(|line| line.clone())
-                .collect()
+        pub fn redo_by(&mut self, count: usize) {
+            // Peek stack forwards by count
+            // Redo line differences on the peeked files for certain versioning
+            // Increment change marker by count
         }
 
-        pub fn all_by_key(&self, path: &str) -> Vec<LineDifference> {
-            self.db
-                .liter(path)
-                .map(|line| line.get_item().unwrap())
-                .collect()
+        pub fn redo(&mut self) {
+            self.redo_by(1)
+        }
+
+        pub fn get_by_path(&self, path: &str) -> Vec<LineDifference> {
+            self.db.get(path).unwrap_or_else(|| vec![])
+        }
+
+        pub fn store_all(&mut self, path: &str, changes: &Vec<LineDifference>) -> Result<(), Error> {
+            self.db.lextend(path, changes);
+            self.db.ladd(CHANGE_PEEK_STACK, &path);
+            self.set_change_marker(&self.get_by_path(CHANGE_PEEK_STACK).len())
+        }
+
+        fn increment_change_marker_by(&mut self, count: usize) -> Result<(), Error> {
+            self.set_change_marker(&(self.get_change_marker().unwrap() + count))
+        }
+
+        fn decrement_change_marker_by(&mut self, count: usize) -> Result<(), Error> {
+            self.set_change_marker(&(self.get_change_marker().unwrap() - count))
+        }
+
+        fn set_change_marker(&mut self, count: &usize) ->  Result<(), Error> {
+            self.db.set(
+                CHANGE_MARKER,
+                count,
+            )
+        }
+
+        fn get_change_marker(&self) -> Option<usize> {
+            self.db.get::<usize>(CHANGE_MARKER)
         }
     }
 }

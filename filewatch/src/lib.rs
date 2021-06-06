@@ -32,7 +32,7 @@ impl FileWatch {
         }
     }
 
-    fn handle(&self, event: DebouncedEvent) -> Result<(), String> {
+    fn handle(&mut self, event: DebouncedEvent) -> Result<(), String> {
         self.event_handle.handle(event)
     }
 
@@ -42,7 +42,7 @@ impl FileWatch {
             .map_err(|err| format!("watch error: {:?}", err))
     }
 
-    fn listen(&self) -> Result<(), String> {
+    fn listen(&mut self) -> Result<(), String> {
         match self.recv.recv() {
             Ok(event) => self.handle(event),
             Err(e) => Err(format!("listen error: {:?}", e)),
