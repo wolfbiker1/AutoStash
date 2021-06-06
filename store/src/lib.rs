@@ -22,17 +22,21 @@ pub mod store {
             SerializationMethod::Json,
         );
 
+        create_change_stack(&mut db);
+        store_all_files(watch_path, &mut db);
+
+        db
+    }
+
+    fn create_change_stack(db: &mut PickleDb) {
         db.lcreate(CHANGE_PEEK_STACK)
             .expect("could not create change peek stack");
 
         db.lcreate(CHANGE_MARKER)
             .expect("could not create change marker");
-        
-        db.set(CHANGE_MARKER, &0).unwrap_or_else(|err| panic!("could not set change marker: {}", err));
 
-        store_all_files(watch_path, &mut db);
-
-        db
+        db.set(CHANGE_MARKER, &0)
+            .unwrap_or_else(|err| panic!("could not set change marker: {}", err));
     }
 
     fn store_all_files(watch_path: &str, db: &mut PickleDb) {
@@ -122,14 +126,18 @@ pub mod store {
             self.redo_by(1)
         }
 
-        pub fn get_by_path(&self, path: &str) -> Vec<LineDifference> {
+        pub fn get_differences_by_path(&self, path: &str) -> Vec<LineDifference> {
             self.db.get(path).unwrap_or_else(|| vec![])
         }
 
-        pub fn store_all(&mut self, path: &str, changes: &Vec<LineDifference>) -> Result<(), Error> {
+        pub fn store_all_differences(
+            &mut self,
+            path: &str,
+            changes: &Vec<LineDifference>,
+        ) -> Result<(), Error> {
             self.db.lextend(path, changes);
             self.db.ladd(CHANGE_PEEK_STACK, &path);
-            self.set_change_marker(&self.get_by_path(CHANGE_PEEK_STACK).len())
+            self.set_change_marker(&self.get_differences_by_path(CHANGE_PEEK_STACK).len())
         }
 
         fn increment_change_marker_by(&mut self, count: usize) -> Result<(), Error> {
@@ -140,11 +148,8 @@ pub mod store {
             self.set_change_marker(&(self.get_change_marker().unwrap() - count))
         }
 
-        fn set_change_marker(&mut self, count: &usize) ->  Result<(), Error> {
-            self.db.set(
-                CHANGE_MARKER,
-                count,
-            )
+        fn set_change_marker(&mut self, count: &usize) -> Result<(), Error> {
+            self.db.set(CHANGE_MARKER, count)
         }
 
         fn get_change_marker(&self) -> Option<usize> {

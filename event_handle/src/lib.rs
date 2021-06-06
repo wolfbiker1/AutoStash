@@ -1,7 +1,7 @@
 pub mod event_handle {
     use std::path::PathBuf;
 
-    use diff::{find, LineDifference};
+    use diff::LineDifference;
     use notify::DebouncedEvent;
     use store::store::Store;
 
@@ -50,11 +50,11 @@ pub mod event_handle {
             let path = path.to_str().unwrap();
             println!("Path is: {}", path);
 
-            let changes = self.store.get_by_path(path);
-            let changes = find(path, &changes);
+            let changes = self.store.get_differences_by_path(path);
+            let changes = diff::find_new_line_differences(path, &changes);
 
             self.store
-                .store_all(path, &changes)
+                .store_all_differences(path, &changes)
                 .unwrap_or_else(|err| println!("couldn't store new changes: {}", err));
         }
 

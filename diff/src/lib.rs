@@ -43,7 +43,10 @@ impl PartialEq for LineDifference {
     }
 }
 
-pub fn find(path: &str, line_differences: &Vec<LineDifference>) -> Vec<LineDifference> {
+pub fn find_new_line_differences(
+    path: &str,
+    line_differences: &Vec<LineDifference>,
+) -> Vec<LineDifference> {
     let file = File::open(path).unwrap();
     let token = LineDifference::token();
     let changes: Vec<LineDifference> = io::BufReader::new(&file)
@@ -123,8 +126,7 @@ mod tests {
     }
 
     fn remove(path: &str) -> std::io::Result<()> {
-        remove_file(path)?;
-        Ok(())
+        remove_file(path)
     }
     #[test]
     fn no_changes() {
@@ -132,7 +134,7 @@ mod tests {
         init(path);
         let changes = read(path);
 
-        let new_changes: Vec<LineDifference> = find(path, &changes);
+        let new_changes: Vec<LineDifference> = find_new_line_differences(path, &changes);
         remove(path).unwrap();
 
         assert_eq!(new_changes, []);
@@ -156,7 +158,7 @@ mod tests {
                 .expect("Couldn't write to file.");
         });
 
-        let new_changes: Vec<LineDifference> = find(path, &changes);
+        let new_changes: Vec<LineDifference> = find_new_line_differences(path, &changes);
         remove(path).unwrap();
 
         assert_eq!(
@@ -191,7 +193,7 @@ mod tests {
                 .expect("Couldn't write to file.");
         });
 
-        let new_changes: Vec<LineDifference> = find(path, &changes);
+        let new_changes: Vec<LineDifference> = find_new_line_differences(path, &changes);
         remove(path).unwrap();
 
         assert_eq!(
@@ -221,7 +223,7 @@ mod tests {
         ]
         .concat();
 
-        let new_changes: Vec<LineDifference> = find(path, &changes);
+        let new_changes: Vec<LineDifference> = find_new_line_differences(path, &changes);
         remove(path).unwrap();
 
         assert_eq!(
