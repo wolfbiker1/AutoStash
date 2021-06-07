@@ -14,19 +14,20 @@ pub mod event_handle {
             EventHandle { store }
         }
 
-        pub fn handle(&mut self, event: DebouncedEvent) -> Result<(), String> {
+        pub fn handle(&mut self, event: DebouncedEvent) -> Result<(), Box<dyn std::error::Error>> {
             let path = self.to_path(&event)?;
             if path.is_file() {
-                self.on_modification(&event);
+                self.on_modification(&event)?;
                 self.on_removal(&event);
             }
             Ok(())
         }
 
-        fn on_modification(&mut self, event: &DebouncedEvent) {
+        fn on_modification(&mut self, event: &DebouncedEvent) -> Result<(), Box<dyn std::error::Error>> {
             if self.is_modification(&event) {
-                self.on_file_change(&event);
+                return self.on_file_change(&event);
             }
+            Ok(())
         }
 
         fn on_removal(&self, event: &DebouncedEvent) {
@@ -35,27 +36,25 @@ pub mod event_handle {
             }
         }
 
-        fn to_path(&self, event: &DebouncedEvent) -> Result<PathBuf, String> {
+        fn to_path(&self, event: &DebouncedEvent) -> Result<PathBuf, Box<dyn std::error::Error>> {
             match event {
                 DebouncedEvent::Write(p) => Ok(p.clone()),
                 DebouncedEvent::Remove(p) => Ok(p.clone()),
-                DebouncedEvent::Error(e, _) => Err(e.to_string()),
-                _ => Err(format!("Event is not handled yet: {:?}", event)),
+                DebouncedEvent::Error(e, _) => Err(e.to_string().into()),
+                _ => Err(format!("Event is not handled yet: {:?}", event).into()),
             }
         }
 
-        fn on_file_change(&mut self, event: &DebouncedEvent) {
+        fn on_file_change(&mut self, event: &DebouncedEvent) -> Result<(), Box<dyn std::error::Error>> {
             println!("File modified: {:?}", event);
             let path = self.to_path(event).unwrap();
-            let path = path.to_str().unwrap();
-            println!("Path is: {}", path);
+            let path = path.as_path().to_str().unwrap();
 
             let changes = self.store.get_differences_by_path(path);
-            let changes = diff::find_new_line_differences(path, &changes);
+            let changes = diff::find_new_changes(path, &changes)?;
 
             self.store
                 .store_all_differences(path, &changes)
-                .unwrap_or_else(|err| println!("couldn't store new changes: {}", err));
         }
 
         fn on_file_remove(&self, event: &DebouncedEvent) {

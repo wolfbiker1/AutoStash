@@ -11,3 +11,5 @@ diff = { path = "../diff" }
 pickledb = "0.4.1"
 walkdir = "2"
 itertools = "0.10.0"
+simple-error = "0.1.9"
+serde = { version = "1.0", features = ["derive"] }
