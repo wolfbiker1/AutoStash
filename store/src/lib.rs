@@ -4,10 +4,10 @@ pub mod store {
     use diff::LineDifference;
     use itertools::Itertools;
     use pickledb::{PickleDb, PickleDbDumpPolicy, SerializationMethod};
+    use serde::de::DeserializeOwned;
     use simple_error::SimpleError;
     use std::error;
     use std::fs::File;
-    use serde::de::DeserializeOwned;
     use std::io::{self, BufRead};
     use std::str::FromStr;
     use walkdir::{DirEntry, WalkDir};
@@ -135,7 +135,6 @@ pub mod store {
             path: &str,
             changes: &Vec<LineDifference>,
         ) -> Result<(), Box<dyn error::Error>> {
-
             if !self.db.lexists(path) {
                 self.db.lcreate(path)?;
             }
@@ -143,7 +142,9 @@ pub mod store {
             self.db
                 .ladd(CHANGE_PEEK_STACK, &path.to_string())
                 .ok_or_else(|| "couldn't add file path to change peek stack")?;
-            let peek_stack_length = self.get_differences_by_path::<String>(CHANGE_PEEK_STACK).len();
+            let peek_stack_length = self
+                .get_differences_by_path::<String>(CHANGE_PEEK_STACK)
+                .len();
 
             self.set_change_marker(&peek_stack_length)
         }

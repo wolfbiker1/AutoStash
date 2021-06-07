@@ -45,6 +45,7 @@ dependencies = [
  "event_handle",
  "filewatch",
  "store",
+ "termion",
  "tui 0.1.0",
 ]
 

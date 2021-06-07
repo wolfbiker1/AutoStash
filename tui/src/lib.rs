@@ -103,11 +103,16 @@ impl Events {
     }
 }
 
+
+fn string_to_static_str(s: String) -> &'static str {
+    Box::leak(s.into_boxed_str())
+}
+
 use std::{error::Error};
 use termion::{input::MouseTerminal, raw::IntoRawMode, screen::AlternateScreen};
 use tui::{backend::TermionBackend, Terminal};
 
-pub fn run_tui() -> Result<(), Box<dyn Error>> {
+pub fn run_tui(stack_transmitter: mpsc::Receiver<String>, version_transmitter: mpsc::Receiver<String>,) -> Result<(), Box<dyn Error>> {
 
     let events = Events::with_config(Config {
         tick_rate: Duration::from_millis(333),
@@ -124,12 +129,35 @@ pub fn run_tui() -> Result<(), Box<dyn Error>> {
     loop {
         terminal.draw(|f| ui::draw(f, &mut app))?;
 
+        let h = stack_transmitter.try_recv();
+
+        // app.title = h.unwrap_err();
+        match h {
+            Ok(res) => {
+                app.title = string_to_static_str(res);
+                
+            }
+            Err(_) => {}
+        }
+
+
+        let h1 = version_transmitter.try_recv();
+
+        // app.title = h.unwrap_err();
+        match h1 {
+            Ok(res) => {
+                app.title = string_to_static_str(res);
+                
+            }
+            Err(_) => {}
+        }
         match events.next()? {
             Event::Input(key) => match key {
                 Key::Char(c) => {
                     app.on_key(c);
                 }
                 Key::Up => {
+                    app.title = "d";
                     app.on_up();
                 }
                 Key::Down => {
