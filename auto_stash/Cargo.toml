@@ -11,3 +11,4 @@ edition = "2018"
 filewatch = { path = "../filewatch" }
 store = { path = "../store" }
 event_handle = { path = "../event_handle" }
+tui = { path = "../tui" }
