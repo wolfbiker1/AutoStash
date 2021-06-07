@@ -1,9 +1,13 @@
+extern crate simple_error;
+
 pub mod store {
     use diff::LineDifference;
     use itertools::Itertools;
-    use pickledb::error::Error;
-    use pickledb::{error, PickleDb, PickleDbDumpPolicy, SerializationMethod};
+    use pickledb::{PickleDb, PickleDbDumpPolicy, SerializationMethod};
+    use simple_error::SimpleError;
+    use std::error;
     use std::fs::File;
+    use serde::de::DeserializeOwned;
     use std::io::{self, BufRead};
     use std::str::FromStr;
     use walkdir::{DirEntry, WalkDir};
@@ -15,95 +19,88 @@ pub mod store {
         db: PickleDb,
     }
 
-    fn version_zero(store_path: &str, watch_path: &str) -> PickleDb {
+    fn version_zero(store_path: &str, watch_path: &str) -> Result<PickleDb, Box<dyn error::Error>> {
         let mut db = PickleDb::new(
             store_path,
             PickleDbDumpPolicy::AutoDump,
             SerializationMethod::Json,
         );
 
-        create_change_stack(&mut db);
-        store_all_files(watch_path, &mut db);
+        create_change_stack(&mut db)?;
+        store_all_files(watch_path, &mut db)?;
 
-        db
+        Ok(db)
     }
 
-    fn create_change_stack(db: &mut PickleDb) {
-        db.lcreate(CHANGE_PEEK_STACK)
-            .expect("could not create change peek stack");
-
-        db.lcreate(CHANGE_MARKER)
-            .expect("could not create change marker");
-
-        db.set(CHANGE_MARKER, &0)
-            .unwrap_or_else(|err| panic!("could not set change marker: {}", err));
+    fn create_change_stack(db: &mut PickleDb) -> Result<(), Box<dyn error::Error>> {
+        db.lcreate(CHANGE_PEEK_STACK)?;
+        db.lcreate(CHANGE_MARKER)?;
+        db.set(CHANGE_MARKER, &0).map_err(|err| err.into())
     }
 
-    fn store_all_files(watch_path: &str, db: &mut PickleDb) {
+    fn store_all_files(watch_path: &str, db: &mut PickleDb) -> Result<(), Box<dyn error::Error>> {
         WalkDir::new(watch_path)
             .into_iter()
-            .for_each(|entry: Result<DirEntry, walkdir::Error>| {
-                let entry = entry.unwrap();
-                let path = entry.path();
-                if path.is_file() {
-                    match db.lcreate(path.to_str().unwrap()) {
-                        Err(e) => eprintln!("error during db file list creation {:?}", e),
-                        _ => (),
-                    }
-
-                    match store_lines_from_file(path, db) {
-                        Err(e) => eprintln!("error during lines from file storage {:?}", e),
-                        _ => (),
-                    }
-                }
+            .filter(|entry| match entry {
+                Ok(entry) => entry.path().is_file(),
+                _ => true,
             })
+            .map(
+                |entry: Result<DirEntry, walkdir::Error>| -> Result<(), Box<dyn error::Error>> {
+                    let entry = entry?;
+                    let path = entry.path();
+                    let p = path
+                        .to_str()
+                        .ok_or_else(|| SimpleError::new("couldn't find path"))?;
+
+                    db.lcreate(p)?;
+                    store_lines_from_file(p, db)
+                },
+            )
+            .find(|e| e.is_err())
+            .unwrap_or_else(|| Ok(()))
     }
 
-    fn store_lines_from_file(
-        path: &std::path::Path,
-        db: &mut PickleDb,
-    ) -> Result<(), std::io::Error> {
+    fn store_lines_from_file(path: &str, db: &mut PickleDb) -> Result<(), Box<dyn error::Error>> {
         let file = File::open(path)?;
-        let path = path.to_str().unwrap();
         io::BufReader::new(file)
             .lines()
             .enumerate()
-            .map(|indexed_line| -> Result<LineDifference, std::io::Error> {
-                let line = indexed_line.1?;
-                Ok(LineDifference::new(
-                    String::from_str(path).unwrap(),
-                    indexed_line.0,
-                    "".to_string(),
-                    line,
-                ))
+            .map(|(index, line)| {
+                db.ladd(
+                    path,
+                    &LineDifference::new(
+                        String::from_str(path).unwrap(),
+                        index,
+                        "".to_string(),
+                        line.unwrap(),
+                    ),
+                )
+                .map(|_| ())
+                .ok_or_else(|| "couldn't add line difference".into())
             })
-            .for_each(|line| match line {
-                Ok(l) => {
-                    db.ladd(path, &l);
-                }
-                Err(e) => {
-                    eprintln!("error during file traversal {:?}", e);
-                }
-            });
-        Ok(())
+            .find(|e| e.is_err())
+            .unwrap_or_else(|| Ok(()))
     }
 
-    fn load(store_path: &str) -> Result<PickleDb, error::Error> {
+    fn load(store_path: &str) -> Result<PickleDb, Box<dyn error::Error>> {
         PickleDb::load(
             store_path,
             PickleDbDumpPolicy::DumpUponRequest,
             SerializationMethod::Json,
         )
+        .map_err(|err| err.into())
     }
 
     impl Store {
-        pub fn new(store_path: &str, watch_path: &str) -> Store {
-            let db = match load(store_path) {
-                Ok(db) => db,
-                Err(_) => version_zero(store_path, watch_path),
-            };
+        pub fn new(store_path: &str, watch_path: &str) -> Result<Store, Box<dyn error::Error>> {
+            let mut db = load(store_path);
+            if db.is_err() {
+                db = version_zero(store_path, watch_path);
+            }
+            let db = db?;
 
-            Store { db }
+            Ok(Store { db })
         }
 
         pub fn undo_by(&mut self, count: usize) {
@@ -126,34 +123,53 @@ pub mod store {
             self.redo_by(1)
         }
 
-        pub fn get_differences_by_path(&self, path: &str) -> Vec<LineDifference> {
-            self.db.get(path).unwrap_or_else(|| vec![])
+        pub fn get_differences_by_path<T: DeserializeOwned>(&self, path: &str) -> Vec<T> {
+            self.db
+                .liter(path)
+                .map(|e| e.get_item().unwrap())
+                .collect_vec()
         }
 
         pub fn store_all_differences(
             &mut self,
             path: &str,
             changes: &Vec<LineDifference>,
-        ) -> Result<(), Error> {
+        ) -> Result<(), Box<dyn error::Error>> {
+
+            if !self.db.lexists(path) {
+                self.db.lcreate(path)?;
+            }
             self.db.lextend(path, changes);
-            self.db.ladd(CHANGE_PEEK_STACK, &path);
-            self.set_change_marker(&self.get_differences_by_path(CHANGE_PEEK_STACK).len())
+            self.db
+                .ladd(CHANGE_PEEK_STACK, &path.to_string())
+                .ok_or_else(|| "couldn't add file path to change peek stack")?;
+            let peek_stack_length = self.get_differences_by_path::<String>(CHANGE_PEEK_STACK).len();
+
+            self.set_change_marker(&peek_stack_length)
         }
 
-        fn increment_change_marker_by(&mut self, count: usize) -> Result<(), Error> {
-            self.set_change_marker(&(self.get_change_marker().unwrap() + count))
+        fn increment_change_marker_by(
+            &mut self,
+            count: usize,
+        ) -> Result<(), Box<dyn error::Error>> {
+            self.set_change_marker(&(self.get_change_marker()? + count))
         }
 
-        fn decrement_change_marker_by(&mut self, count: usize) -> Result<(), Error> {
-            self.set_change_marker(&(self.get_change_marker().unwrap() - count))
+        fn decrement_change_marker_by(
+            &mut self,
+            count: usize,
+        ) -> Result<(), Box<dyn error::Error>> {
+            self.set_change_marker(&(self.get_change_marker()? - count))
         }
 
-        fn set_change_marker(&mut self, count: &usize) -> Result<(), Error> {
-            self.db.set(CHANGE_MARKER, count)
+        fn set_change_marker(&mut self, count: &usize) -> Result<(), Box<dyn error::Error>> {
+            self.db.set(CHANGE_MARKER, count).map_err(|err| err.into())
         }
 
-        fn get_change_marker(&self) -> Option<usize> {
-            self.db.get::<usize>(CHANGE_MARKER)
+        fn get_change_marker(&self) -> Result<usize, Box<dyn error::Error>> {
+            self.db
+                .get::<usize>(CHANGE_MARKER)
+                .ok_or_else(|| "couln't get change marker".into())
         }
     }
 }
