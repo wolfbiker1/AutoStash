@@ -1,18 +1,36 @@
-use std::error::Error;
 use std::time::Duration;
 
+use event_handle::event_handle::EventHandle;
 use filewatch::FileWatch;
+use store::store::Store;
 
-pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
-    let mut watcher = FileWatch::new(config.debounce_time).expect("Failed to initialize inotify");
-    watcher.start_watching(config.path);
-
-    Ok(())
+pub struct AutoStash {
+    watch_path: String,
+    watch: FileWatch,
 }
 
+impl AutoStash {
+    pub fn new(config: &Config) -> Result<AutoStash, Box<dyn std::error::Error>> {
+        let store = Store::new(config.store_path.as_str(), config.watch_path.as_str());
+        let event_handle = EventHandle::new(store);
+        let watch = FileWatch::new(config.debounce_time, event_handle)?;
+
+        Ok(AutoStash {
+            watch,
+            watch_path: config.watch_path.clone(),
+        })
+    }
+
+    pub fn run(&mut self) -> Result<(), String> {
+        self.watch.start_watching(self.watch_path.as_str())
+    }
+}
+
+#[derive(Clone)]
 pub struct Config {
-    pub path: String,
-    pub debounce_time: Duration
+    pub store_path: String,
+    pub watch_path: String,
+    pub debounce_time: Duration,
 }
 
 use std::env;
@@ -22,16 +40,27 @@ impl Config {
         // skip binary
         args.next();
 
-        let path = match args.next() {
+        let store_path = match args.next() {
             Some(arg) => arg,
-            None => return Err("Didn't get a path"),
+            None => return Err("Didn't get a store path"),
+        };
+
+        let watch_path = match args.next() {
+            Some(arg) => arg,
+            None => return Err("Didn't get a watch path"),
         };
 
         let debounce_time = match args.next() {
             Some(arg) => arg,
             None => return Err("Didn't get a debounce time"),
-        }.parse::<u64>().unwrap();
+        }
+        .parse::<u64>()
+        .unwrap();
 
-        Ok(Config { path, debounce_time: Duration::from_secs(debounce_time) })
+        Ok(Config {
+            store_path,
+            watch_path,
+            debounce_time: Duration::from_millis(debounce_time),
+        })
     }
 }

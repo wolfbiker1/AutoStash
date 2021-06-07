@@ -5,5 +5,5 @@ authors = ["wolfbiker1 <be631wil@htwg-konstanz.de>", "AlexanderBrese <admin@alex
 edition = "2018"
 
 [dependencies]
-difference = "2.0"
-singleton = "0.2.2"
+serde = "1.0.126"
+chrono = "0.4"

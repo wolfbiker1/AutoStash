@@ -8,3 +8,6 @@ edition = "2018"
 
 [dependencies]
 diff = { path = "../diff" }
+pickledb = "0.4.1"
+walkdir = "2"
+itertools = "0.10.0"
