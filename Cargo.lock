@@ -789,7 +789,6 @@ dependencies = [
  "filewatch",
  "rand",
  "store",
- "termion",
  "tui 0.15.0",
 ]
 

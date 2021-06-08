@@ -71,11 +71,10 @@ where
         .margin(1)
         .split(area);
     let block = Block::default().borders(Borders::ALL).title("Differences");
-    let text: Vec<Spans>  = app.processed_diffs.clone();
+    let text: Vec<Spans> = app.processed_diffs.clone();
     // let text: Vec<Spans>  = Vec::new();
     let paragraph = Paragraph::new(text).block(block).wrap(Wrap { trim: true });
     f.render_widget(paragraph, area);
-
 }
 
 fn draw_charts<B>(f: &mut Frame<B>, app: &mut App, area: Rect)
@@ -103,7 +102,7 @@ where
 
             // Draw tasks
             let tasks: Vec<ListItem> = app
-                .tasks
+                .versions
                 .items
                 .iter()
                 .map(|i| ListItem::new(vec![Spans::from(Span::raw(*i))]))
@@ -112,12 +111,15 @@ where
                 .block(Block::default().borders(Borders::ALL).title("Snapshot"))
                 .highlight_style(Style::default().add_modifier(Modifier::BOLD))
                 .highlight_symbol("x ");
-            f.render_stateful_widget(tasks, chunks[0], &mut app.tasks.state);
-
+            f.render_stateful_widget(tasks, chunks[0], &mut app.versions.state);
         }
 
         let barchart = BarChart::default()
-            .block(Block::default().borders(Borders::ALL).title("Noch mehr Statistik"))
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title("Noch mehr Statistik"),
+            )
             .bar_width(3)
             .bar_gap(2)
             .bar_set(symbols::bar::THREE_LEVELS)
@@ -132,8 +134,7 @@ where
         f.render_widget(barchart, chunks[1]);
     }
     if app.show_chart {
-        let x_labels = vec![
-        ];
+        let x_labels = vec![];
         let datasets = vec![
             Dataset::default()
                 .name("Legend1")
@@ -187,11 +188,11 @@ where
         Spans::from(""),
         Spans::from(vec![
             Span::from(""),
-            Span::styled("", Style::default().fg(Color::Red))
+            Span::styled("", Style::default().fg(Color::Red)),
         ]),
         Spans::from(vec![
             Span::raw(""),
-            Span::styled("", Style::default().add_modifier(Modifier::ITALIC))
+            Span::styled("", Style::default().add_modifier(Modifier::ITALIC)),
         ]),
     ];
 }
@@ -205,7 +206,7 @@ where
         .direction(Direction::Horizontal)
         .split(area);
     let up_style = Style::default().fg(Color::Green);
-    
+
     let rows = app.servers.iter().map(|s| {
         let style = up_style;
         Row::new(vec![s.name, s.location]).style(style)
@@ -225,7 +226,6 @@ where
     f.render_widget(table, chunks[0]);
     let block = Block::default().borders(Borders::ALL).title("Differences");
     f.render_widget(block, chunks[1]);
-
 }
 
 fn draw_third_tab<B>(f: &mut Frame<B>, app: &mut App, area: Rect)
@@ -236,7 +236,10 @@ where
         .constraints([Constraint::Percentage(30), Constraint::Percentage(70)].as_ref())
         .direction(Direction::Horizontal)
         .split(area);
-        let rows = app.servers.iter().map(|s| { Row::new(vec![s.name, s.location]).style(Style::default().fg(Color::Green)) });
+    let rows = app
+        .servers
+        .iter()
+        .map(|s| Row::new(vec![s.name, s.location]).style(Style::default().fg(Color::Green)));
     let table = Table::new(rows)
         .header(
             Row::new(vec!["Server", "Location", "Status"])

@@ -1,5 +1,5 @@
 ---
-- CHANGE_MARKER: "---\n6\n"
+- CHANGE_MARKER: "---\n7\n"
 - /home/benni/Coding/Rust/diff_files/orig.txt:
     - "---\npath: /home/benni/Coding/Rust/diff_files/orig.txt\nline_number: 0\nline: \"\"\nchanged_line: \"Drosten erwartet demnach in einigen Wochen eine Diskussion über die Förderung der Impfbereitschaft. \"\ndate_time: \"2021-06-08T18:50:49.611856532+00:00\"\n"
     - "---\npath: /home/benni/Coding/Rust/diff_files/orig.txt\nline_number: 1\nline: \"\"\nchanged_line: \"Ziel seien mindestens 80 Prozent Zweifachimpfungen, zumindest in der \\\"impffähigen erwachsenen Bevölkerung\\\", \"\ndate_time: \"2021-06-08T18:50:49.612259359+00:00\"\n"
@@ -14,7 +14,10 @@
     - "---\npath: /home/benni/Coding/Rust/diff_files/orig.txt\nline_number: 4\nline: \"Das Augenmerk müsse im Moment noch auf der Versorgung der Menschen ab Mitte 40 liegen, sagte Drosten. \"\nchanged_line: \"Da!s Augenmerk müsse im Moment noch auf der Versorgung der Menschen ab Mitte 40 liegen, sagte Drosten. \"\ndate_time: \"2021-06-08T19:03:21.027949111+00:00\"\n"
     - "---\npath: /home/benni/Coding/Rust/diff_files/orig.txt\nline_number: 4\nline: \"Das Augenmerk müsse im Moment noch auf der Versorgung der Menschen ab Mitte 40 liegen, sagte Drosten. \"\nchanged_line: \"Da!fs Augenmerk müsse im Moment noch auf der Versorgung der Menschen ab Mitte 40 liegen, sagte Drosten. \"\ndate_time: \"2021-06-08T19:13:48.339544262+00:00\"\n"
     - "---\npath: /home/benni/Coding/Rust/diff_files/orig.txt\nline_number: 4\nline: \"Da!s Augenmerk müsse im Moment noch auf der Versorgung der Menschen ab Mitte 40 liegen, sagte Drosten. \"\nchanged_line: \"\"\ndate_time: \"2021-06-08T19:13:48.339643429+00:00\"\n"
+    - "---\npath: /home/benni/Coding/Rust/diff_files/orig.txt\nline_number: 4\nline: \"Das Augenmerk müsse im Moment noch auf der Versorgung der Menschen ab Mitte 40 liegen, sagte Drosten. \"\nchanged_line: \"Da!fds Augenmerk müsse im Moment noch auf der Versorgung der Menschen ab Mitte 40 liegen, sagte Drosten. \"\ndate_time: \"2021-06-08T19:36:06.992692924+00:00\"\n"
+    - "---\npath: /home/benni/Coding/Rust/diff_files/orig.txt\nline_number: 4\nline: \"\"\nchanged_line: \"\"\ndate_time: \"2021-06-08T19:36:06.992788994+00:00\"\n"
   CHANGE_PEEK_STACK:
+    - "---\n/home/benni/Coding/Rust/diff_files/orig.txt\n"
     - "---\n/home/benni/Coding/Rust/diff_files/orig.txt\n"
     - "---\n/home/benni/Coding/Rust/diff_files/orig.txt\n"
     - "---\n/home/benni/Coding/Rust/diff_files/orig.txt\n"
