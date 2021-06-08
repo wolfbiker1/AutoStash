@@ -7,19 +7,17 @@ pub mod store {
     use pickledb::{PickleDb, PickleDbDumpPolicy, SerializationMethod};
     use serde::de::DeserializeOwned;
     use simple_error::SimpleError;
-    use std::collections::VecDeque;
     use std::error;
     use std::fs::File;
     use std::io::Write;
     use std::io::{self, BufRead};
-    use std::str::FromStr;
     use walkdir::{DirEntry, WalkDir};
 
     static CHANGE_PEEK_STACK: &str = "CHANGE_PEEK_STACK";
     static CHANGE_MARKER: &str = "CHANGE_MARKER";
     pub struct Store {
         db: PickleDb,
-        time_slot_hours: u32,
+        pub time_slot_hours: u32,
     }
 
     fn version_zero(store_path: &str, watch_path: &str) -> Result<PickleDb, Box<dyn error::Error>> {
@@ -101,26 +99,12 @@ pub mod store {
             })
         }
 
-        pub fn undo_by(&mut self, count: usize, previous: bool) -> Result<(), Box<dyn error::Error>> {
-            // Peek stack backwards by count
-            // Undo line differences on the peeked files for certain versioning
-            // Decrement change marker by count
-
-            let file_stack = self.peek_files(count, previous);
-            self.undo_files(file_stack)
-            //self.decrement_change_marker_by(count)
-        }
-
-        pub fn undo(&mut self) -> Result<(), Box<dyn error::Error>> {
-            self.undo_by(1, true)
+        pub fn undo_by(&mut self, count: usize) -> Result<(), Box<dyn error::Error>> {
+            self.undo(count, true)
         }
 
         pub fn redo_by(&mut self, count: usize) -> Result<(), Box<dyn error::Error>> {
-            self.undo_by(count, false)
-        }
-
-        pub fn redo(&mut self) -> Result<(), Box<dyn error::Error>> {
-            self.redo_by(1)
+            self.undo(count, false)
         }
 
         pub fn get_differences_by_path<T: DeserializeOwned + std::fmt::Debug>(
@@ -152,9 +136,21 @@ pub mod store {
             self.set_change_marker(&peek_stack_length)
         }
 
-        fn peek_files(&mut self, count: usize, previous: bool) -> VecDeque<String> {
-            // TODO: time slot peek
-            let mut peeked: VecDeque<String> = VecDeque::new();
+        fn undo(
+            &mut self,
+            count: usize,
+            previous: bool,
+        ) -> Result<(), Box<dyn error::Error>> {
+            // Peek stack backwards by count
+            // Undo line differences on the peeked files for certain versioning
+            // Decrement change marker by count
+
+            let file_stack = self.peek_files(count, previous);
+            self.undo_files(file_stack)
+            //self.decrement_change_marker_by(count)
+        }
+
+        fn peek_files(&mut self, count: usize, previous: bool) -> Vec<String> {
             let marker = self.stack_marker();
             let (begin, end);
             if previous {
@@ -164,18 +160,17 @@ pub mod store {
                 begin = marker;
                 end = marker + count;
             }
-            //TODO: Fix
-            for i in begin..end {
-                peeked.push_front(self.db.lget(CHANGE_PEEK_STACK, i).unwrap());
-            }
-            peeked
-                .iter()
+
+            self.db
+                .liter(CHANGE_PEEK_STACK)
+                .skip(begin)
+                .take(end)
+                .map(|e| e.get_item::<String>().unwrap())
                 .dedup_by(|a, b| a.eq(b))
-                .map(|e| e.clone())
                 .collect()
         }
 
-        fn undo_files(&self, file_stack: VecDeque<String>) -> Result<(), Box<dyn error::Error>> {
+        fn undo_files(&self, file_stack: Vec<String>) -> Result<(), Box<dyn error::Error>> {
             file_stack.iter().for_each(|file| {
                 let changed_lines = self
                     .get_differences_by_path::<LineDifference>(file)
@@ -184,7 +179,8 @@ pub mod store {
                     .map(|e| e.clone())
                     .collect();
                 // TODO: propagate error
-                self.undo_line_differences(self.restrict_by_time_slot(changed_lines)).unwrap()
+                self.undo_line_differences(self.restrict_by_time_slot(changed_lines))
+                    .unwrap()
             });
             Ok(())
         }
@@ -241,8 +237,6 @@ pub mod store {
         fn stack_marker(&mut self) -> usize {
             self.db.get(CHANGE_MARKER).unwrap()
         }
-
-        
 
         fn increment_change_marker_by(
             &mut self,
