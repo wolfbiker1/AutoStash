@@ -54,6 +54,7 @@ pub mod event_handle {
             match event {
                 DebouncedEvent::Write(p) => Ok(p.clone()),
                 DebouncedEvent::Remove(p) => Ok(p.clone()),
+                DebouncedEvent::NoticeWrite(p) => Ok(p.clone()),
                 DebouncedEvent::Error(e, _) => Err(e.to_string().into()),
                 _ => Err(format!("Event is not handled yet: {:?}", event).into()),
             }
@@ -63,7 +64,7 @@ pub mod event_handle {
             &mut self,
             event: &DebouncedEvent,
         ) -> Result<(), Box<dyn std::error::Error>> {
-            println!("File modified: {:?}", event);
+            //println!("File modified: {:?}", event);
             let path = self.to_path(event).unwrap();
             let path = path.as_path().to_str().unwrap();
 
@@ -75,7 +76,7 @@ pub mod event_handle {
         }
 
         fn on_file_remove(&self, event: &DebouncedEvent) {
-            println!("File removed: {:?}", event);
+            //println!("File removed: {:?}", event);
         }
 
         fn is_modification(&self, event: &DebouncedEvent) -> bool {

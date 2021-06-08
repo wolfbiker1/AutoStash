@@ -12,7 +12,7 @@ pub struct LineDifference<'a> {
     pub location: &'a str
 }
 
-pub struct myFoo {
+pub struct AutoStash {
     pub watch_path: String,
     pub watch: FileWatch,
 }
@@ -22,7 +22,6 @@ pub struct App<'a> {
     pub should_quit: bool,
     pub tabs: TabsState<'a>,
     pub show_chart: bool,
-    // pub progress: f64,
     pub tasks: StatefulList<&'a str>,
     pub servers: Vec<LineDifference<'a>>
 }
@@ -67,14 +66,14 @@ impl Config {
     }
 }
 
-impl myFoo {
-    pub fn new(config: &Config) -> Result<myFoo, Box<dyn std::error::Error>> {
+impl AutoStash {
+    pub fn new(config: &Config) -> Result<AutoStash, Box<dyn std::error::Error>> {
     let store = Store::new(config.store_path.as_str(), config.watch_path.as_str())?;
     let event_handle = EventHandle::new(store);
     let watch = FileWatch::new(config.debounce_time, event_handle)?;
 
 
-    Ok (myFoo {
+    Ok (AutoStash {
         watch,
         watch_path: config.watch_path.clone(),
     })
@@ -93,7 +92,6 @@ impl<'a> App<'a> {
             should_quit: false,
             tabs: TabsState::new(vec![ "Statistic", "Info", "Overview"]),
             show_chart: true,
-            // progress: 0.0,
             tasks: StatefulList::with_items(TASKS.to_vec()),
 
             servers: vec![

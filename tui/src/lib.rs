@@ -3,7 +3,7 @@ mod tui_main;
 mod util;
 
 use crate::{
-    tui_main::{ui, App, Config, myFoo}
+    tui_main::{ui, App, Config, AutoStash}
 };
 
 use std::env::Args;
@@ -82,7 +82,7 @@ use std::{error::Error};
 use termion::{input::MouseTerminal, raw::IntoRawMode, screen::AlternateScreen};
 use tui::{backend::TermionBackend, Terminal};
 
-pub fn run_tui(stack_transmitter: mpsc::Receiver<String>, version_transmitter: mpsc::Receiver<String>,foo: std::env::Args) -> Result<(), Box<dyn Error>> {
+pub fn run_tui(stack_transmitter: mpsc::Receiver<String>, version_transmitter: mpsc::Receiver<String>, args: std::env::Args) -> Result<(), Box<dyn Error>> {
 
     let events = Events::with_config();
 
@@ -92,8 +92,8 @@ pub fn run_tui(stack_transmitter: mpsc::Receiver<String>, version_transmitter: m
     let backend = TermionBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    let config = Config::new(foo).unwrap();
-    let mut f = myFoo::new(&config).unwrap();
+    let config = Config::new(args).unwrap();
+    let mut f = AutoStash::new(&config).unwrap();
     let app = App::new("AutoStash");
 
     let mut app = app.unwrap();
