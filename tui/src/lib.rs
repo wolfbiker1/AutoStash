@@ -23,6 +23,8 @@ pub enum Event<I> {
     Input(I),
     Tick,
 }
+
+
 // extern crate auto_
 /// A small event handler that wrap termion input and tick events. Each event
 /// type is handled in its own thread and returned to a common `Receiver`
@@ -80,8 +82,11 @@ fn string_to_static_str(s: String) -> &'static str {
 
 use std::{error::Error};
 use termion::{input::MouseTerminal, raw::IntoRawMode, screen::AlternateScreen};
-use tui::{backend::TermionBackend, Terminal};
-
+// use tui::{backend::TermionBackend, backend::CrosstermBackend, Terminal};
+use tui::{
+    backend::{Backend, CrosstermBackend},
+    Terminal,
+  };
 pub fn run_tui(stack_transmitter: mpsc::Receiver<String>, version_transmitter: mpsc::Receiver<String>, args: std::env::Args) -> Result<(), Box<dyn Error>> {
 
     let events = Events::with_config();
@@ -89,7 +94,7 @@ pub fn run_tui(stack_transmitter: mpsc::Receiver<String>, version_transmitter: m
     let stdout = io::stdout().into_raw_mode()?;
     let stdout = MouseTerminal::from(stdout);
     let stdout = AlternateScreen::from(stdout);
-    let backend = TermionBackend::new(stdout);
+    let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
     let config = Config::new(args).unwrap();

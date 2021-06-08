@@ -1,1 +1,10 @@
-[{"CHANGE_MARKER":"0"},{"/home/benni/Coding/Rust/diff_files/orig.txt":["{\"path\":\"/home/benni/Coding/Rust/diff_files/orig.txt\",\"line_number\":0,\"line\":\"\",\"changed_line\":\"hallo\",\"date_time\":\"2021-06-07T17:28:43.217074498+00:00\"}","{\"path\":\"/home/benni/Coding/Rust/diff_files/orig.txt\",\"line_number\":1,\"line\":\"\",\"changed_line\":\"gaga\",\"date_time\":\"2021-06-07T17:28:43.217558716+00:00\"}"],"CHANGE_PEEK_STACK":[]}]
+---
+- CHANGE_MARKER: "---\n1\n"
+- CHANGE_PEEK_STACK:
+    - "---\n/home/benni/Coding/Rust/diff_files/orig.txt\n"
+  /home/benni/Coding/Rust/diff_files/orig.txt:
+    - "{\"path\":\"/home/benni/Coding/Rust/diff_files/orig.txt\",\"line_number\":0,\"line\":\"\",\"changed_line\":\"hallo\",\"date_time\":\"2021-06-07T17:28:43.217074498+00:00\"}"
+    - "{\"path\":\"/home/benni/Coding/Rust/diff_files/orig.txt\",\"line_number\":1,\"line\":\"\",\"changed_line\":\"gaga\",\"date_time\":\"2021-06-07T17:28:43.217558716+00:00\"}"
+    - "---\npath: /home/benni/Coding/Rust/diff_files/orig.txt\nline_number: 0\nline: hallo\nchanged_line: fffdfdsdvsdddddhallo\ndate_time: \"2021-06-08T16:55:06.292258857+00:00\"\n"
+    - "---\npath: /home/benni/Coding/Rust/diff_files/orig.txt\nline_number: 1\nline: gaga\nchanged_line: gadfdfvs\ndate_time: \"2021-06-08T16:55:06.292280046+00:00\"\n"
+    - "---\npath: /home/benni/Coding/Rust/diff_files/orig.txt\nline_number: 2\nline: \"\"\nchanged_line: sddddddga\ndate_time: \"2021-06-08T16:55:06.292301337+00:00\"\n"
