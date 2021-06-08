@@ -9,19 +9,20 @@ pub mod event_handle {
     pub struct EventHandle {
         store: Store,
         // type will be replaced soon
-        // tx_sorted_stack: mpsc::Sender<String>,
-        // tx_new_version: mpsc::Sender<String>,
+        tx_sorted_stack: mpsc::Sender<String>,
+        tx_new_version: mpsc::Sender<String>,
     }
 
     impl EventHandle {
         pub fn new(
-            store: Store, // stack_transmitter: mpsc::Sender<String>,
-                          // version_transmitter: mpsc::Sender<String>
+            store: Store,
+            stack_transmitter: mpsc::Sender<String>,
+            version_transmitter: mpsc::Sender<String>,
         ) -> EventHandle {
             EventHandle {
                 store,
-                // tx_sorted_stack: stack_transmitter,
-                // tx_new_version: version_transmitter,
+                tx_sorted_stack: stack_transmitter,
+                tx_new_version: version_transmitter,
             }
         }
 

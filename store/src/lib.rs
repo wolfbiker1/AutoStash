@@ -48,9 +48,7 @@ pub mod store {
                 |entry: Result<DirEntry, walkdir::Error>| -> Result<(), Box<dyn error::Error>> {
                     let entry = entry?;
                     let path = entry.path();
-                    let p = path
-                        .to_str()
-                        .unwrap_or_else(|| "couldn't find path");
+                    let p = path.to_str().unwrap_or_else(|| "couldn't find path");
                     db.lcreate(p)?;
                     store_lines_from_file(p.to_string(), db)
                 },

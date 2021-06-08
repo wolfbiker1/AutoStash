@@ -87,10 +87,11 @@ use tui::{
     backend::{Backend, CrosstermBackend},
     Terminal,
   };
-pub fn run_tui(stack_transmitter: mpsc::Receiver<String>, version_transmitter: mpsc::Receiver<String>, args: std::env::Args) -> Result<(), Box<dyn Error>> {
+pub fn run_tui(args: std::env::Args) -> Result<(), Box<dyn Error>> {
+    let (tx, rx): (mpsc::Sender<String>, mpsc::Receiver<String>) = mpsc::channel();
+    let (tx1, rx1): (mpsc::Sender<String>, mpsc::Receiver<String>) = mpsc::channel();
 
     let events = Events::with_config();
-
     let stdout = io::stdout().into_raw_mode()?;
     let stdout = MouseTerminal::from(stdout);
     let stdout = AlternateScreen::from(stdout);
@@ -98,11 +99,11 @@ pub fn run_tui(stack_transmitter: mpsc::Receiver<String>, version_transmitter: m
     let mut terminal = Terminal::new(backend)?;
 
     let config = Config::new(args).unwrap();
-    let mut f = AutoStash::new(&config).unwrap();
+    let mut f = AutoStash::new(&config, tx, tx1).unwrap();
     let app = App::new("AutoStash");
 
     let mut app = app.unwrap();
-
+    
     let f1 = thread::spawn(move || {
         // app.watch.start_watching(app.watch_path.as_str())
         f.run();

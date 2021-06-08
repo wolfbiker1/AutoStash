@@ -3,6 +3,8 @@ use filewatch::FileWatch;
 use std::time::Duration;
 use event_handle::event_handle::EventHandle;
 use store::store::Store;
+use std::sync::mpsc;
+
 const TASKS: [&str; 2] = [
     "foo.txt", "bar.dat",
 ];
@@ -67,9 +69,9 @@ impl Config {
 }
 
 impl AutoStash {
-    pub fn new(config: &Config) -> Result<AutoStash, Box<dyn std::error::Error>> {
+    pub fn new(config: &Config, stack_sender: mpsc::Receiver<String>, version_sender: mpsc::Receiver<String>, ) -> Result<AutoStash, Box<dyn std::error::Error>> {
     let store = Store::new(config.store_path.as_str(), config.watch_path.as_str())?;
-    let event_handle = EventHandle::new(store);
+    let event_handle = EventHandle::new(store, stack_sender, version_sender);
     let watch = FileWatch::new(config.debounce_time, event_handle)?;
 
 
