@@ -1,8 +1,11 @@
-use chrono::Utc;
+use chrono::{NaiveDateTime, Offset, Utc};
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use std::fs::{remove_file, File};
 use std::io::Write;
 use std::io::{self, BufRead};
+
+static DATETIME_FORMAT: &str = "%Y-%m-%dT%H:%M:%S%.9f%:z";
 
 #[derive(Serialize, Deserialize, Clone, Debug, Eq)]
 pub struct LineDifference {
@@ -43,19 +46,18 @@ impl PartialEq for LineDifference {
     }
 }
 
-pub fn find_new_changes(
+pub fn find(
     path: &str,
     prev_changes: &Vec<LineDifference>,
 ) -> Result<Vec<LineDifference>, Box<dyn std::error::Error>> {
-    let file = File::open(path)?;
-    let changed_or_added_lines = find_changed_or_added_lines(&file, path, prev_changes);
-    let file = File::open(path)?;
-    let lines = io::BufReader::new(&file).lines().count();
+    let prev_changes = &unique_prev_changes(prev_changes);
+    let changed_or_added_lines = find_changed_or_added_lines(path, prev_changes)?;
+    let line_count = line_count(path)?;
 
-    if has_removed_lines(prev_changes, lines) {
+    if has_removed_lines(prev_changes, line_count) {
         return Ok([
             changed_or_added_lines,
-            find_removed_lines(prev_changes, lines),
+            find_removed_lines(prev_changes, line_count),
         ]
         .concat());
     }
@@ -63,24 +65,44 @@ pub fn find_new_changes(
     Ok(changed_or_added_lines)
 }
 
+fn line_count(path: &str) -> Result<usize, Box<dyn std::error::Error>> {
+    let file = File::open(path)?;
+    Ok(io::BufReader::new(&file).lines().count())
+}
+
 fn has_removed_lines(prev_changes: &Vec<LineDifference>, line_count: usize) -> bool {
     prev_changes.len() > line_count
+}
+
+fn unique_prev_changes(prev_changes: &Vec<LineDifference>) -> Vec<LineDifference> {
+    prev_changes
+        .into_iter()
+        .sorted_by(|a, b| sort(b.date_time.as_str(), a.date_time.as_str()))
+        .dedup_by(|a, b| a.line_number.eq(&b.line_number))
+        .sorted_by(|a, b| sort(a.date_time.as_str(), b.date_time.as_str()))
+        .map(|e| e.clone())
+        .collect_vec()
+}
+
+fn sort(date_time_a: &str, date_time_b: &str) -> std::cmp::Ordering {
+    Ord::cmp(
+        &NaiveDateTime::parse_from_str(date_time_a, DATETIME_FORMAT).unwrap(),
+        &NaiveDateTime::parse_from_str(date_time_b, DATETIME_FORMAT).unwrap(),
+    )
 }
 
 fn find_removed_lines(
     prev_changes: &Vec<LineDifference>,
     line_count: usize,
 ) -> Vec<LineDifference> {
-    // TODO: Sort by time
     prev_changes
         .split_at(line_count)
         .1
         .iter()
-        .enumerate()
-        .map(|(index, line)| {
+        .map(|line| {
             LineDifference::new(
                 line.path.to_string(),
-                line_count + index,
+                line.line_number,
                 line.changed_line.to_string(),
                 "".to_string(),
             )
@@ -89,13 +111,13 @@ fn find_removed_lines(
 }
 
 fn find_changed_or_added_lines(
-    file: &File,
     path: &str,
     prev_changes: &Vec<LineDifference>,
-) -> Vec<LineDifference> {
+) -> Result<Vec<LineDifference>, Box<dyn std::error::Error>> {
+    let file = File::open(path)?;
     let token = LineDifference::token();
 
-    io::BufReader::new(file)
+    Ok(io::BufReader::new(file)
         .lines()
         .enumerate()
         .map(|(index, line)| {
@@ -107,7 +129,7 @@ fn find_changed_or_added_lines(
             find_changed_or_added_line(prev_changes, index, path, line.unwrap(), &token)
         })
         .filter(|e| e.ne(&token))
-        .collect()
+        .collect())
 }
 
 fn find_changed_or_added_line(
@@ -147,26 +169,41 @@ mod tests {
 
     fn init(path: &str) -> Result<(), Box<dyn std::error::Error>> {
         let mut file = std::fs::File::create(path)?;
-        file.write_all("Hello World\n".repeat(10).as_bytes())?;
+        file.write_all("Hello World\n".repeat(5).as_bytes())?;
         Ok(())
     }
 
     fn read(path: &str) -> Result<Vec<LineDifference>, Box<dyn std::error::Error>> {
         let file = File::open(path)?;
-        io::BufReader::new(&file)
+        let res = io::BufReader::new(&file)
             .lines()
             .enumerate()
             .map(|(index, line)| {
-                let line = line?;
+                // TODO: Check
+                let line = line.unwrap();
 
-                Ok(LineDifference::new(
-                    path.to_string(),
-                    index,
-                    "".to_string(),
-                    line,
-                ))
+                LineDifference::new(path.to_string(), index, "".to_string(), line)
             })
-            .collect()
+            .collect();
+
+        Ok([
+            res,
+            vec![
+                LineDifference::new(
+                    path.to_string(),
+                    4,
+                    "Hello World".to_string(),
+                    "".to_string(),
+                ),
+                LineDifference::new(
+                    path.to_string(),
+                    4,
+                    "".to_string(),
+                    "Hello World".to_string(),
+                ),
+            ],
+        ]
+        .concat())
     }
 
     fn remove(path: &str) -> std::io::Result<()> {
@@ -178,7 +215,7 @@ mod tests {
         init(path).unwrap();
         let changes = read(path).unwrap();
 
-        let new_changes: Vec<LineDifference> = find_new_changes(path, &changes).unwrap();
+        let new_changes: Vec<LineDifference> = find(path, &changes).unwrap();
         remove(path).unwrap();
 
         assert_eq!(new_changes, []);
@@ -191,7 +228,7 @@ mod tests {
         let changes = read(path).unwrap();
 
         let mut file = OpenOptions::new().write(true).open(path).unwrap();
-        let mut new_file_content: Vec<String> = changes
+        let mut new_file_content: Vec<String> = unique_prev_changes(&changes)
             .iter()
             .map(|line| line.changed_line.to_string() + "\n")
             .collect();
@@ -202,7 +239,7 @@ mod tests {
                 .expect("Couldn't write to file.");
         });
 
-        let new_changes: Vec<LineDifference> = find_new_changes(path, &changes).unwrap();
+        let new_changes: Vec<LineDifference> = find(path, &changes).unwrap();
         remove(path).unwrap();
 
         assert_eq!(
@@ -224,7 +261,7 @@ mod tests {
 
         let mut file = OpenOptions::new().write(true).open(path).unwrap();
         let new_file_content = [
-            changes
+            unique_prev_changes(&changes)
                 .iter()
                 .map(|line| line.clone().changed_line + "\n")
                 .collect(),
@@ -237,14 +274,14 @@ mod tests {
                 .expect("Couldn't write to file.");
         });
 
-        let new_changes: Vec<LineDifference> = find_new_changes(path, &changes).unwrap();
+        let new_changes: Vec<LineDifference> = find(path, &changes).unwrap();
         remove(path).unwrap();
 
         assert_eq!(
             new_changes,
             vec![LineDifference::new(
                 path.to_string(),
-                10,
+                5,
                 "".to_string(),
                 "Hello World".to_string()
             )]
@@ -260,23 +297,60 @@ mod tests {
             read(path).unwrap(),
             vec![LineDifference::new(
                 path.to_string(),
-                10,
+                5,
                 "".to_string(),
                 "Hello World".to_string(),
             )],
         ]
         .concat();
 
-        let new_changes: Vec<LineDifference> = find_new_changes(path, &changes).unwrap();
+        let new_changes: Vec<LineDifference> = find(path, &changes).unwrap();
         remove(path).unwrap();
 
         assert_eq!(
             new_changes,
             vec![LineDifference::new(
                 path.to_string(),
-                10,
+                5,
                 "Hello World".to_string(),
                 "".to_string()
+            )]
+        );
+    }
+
+    #[test]
+    fn should_compare_only_the_latest_prev_changes() {
+        let path = "test5.txt";
+
+        let prev_change = LineDifference::new(
+            path.to_string(),
+            0,
+            "".to_string(),
+            "Hello World".to_string(),
+        );
+        let changes: Vec<LineDifference> = vec![
+            prev_change,
+            LineDifference::new(
+                path.to_string(),
+                0,
+                "Hello World".to_string(),
+                "Hello World2".to_string(),
+            ),
+        ];
+        let mut file = std::fs::File::create(path).unwrap();
+        file.write_all("Hello World2\nNew Change\n".as_bytes())
+            .unwrap();
+
+        let new_changes: Vec<LineDifference> = find(path, &changes).unwrap();
+        remove(path).unwrap();
+
+        assert_eq!(
+            new_changes,
+            vec![LineDifference::new(
+                path.to_string(),
+                1,
+                "".to_string(),
+                "New Change".to_string()
             )]
         );
     }

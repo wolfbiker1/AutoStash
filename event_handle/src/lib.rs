@@ -23,7 +23,10 @@ pub mod event_handle {
             Ok(())
         }
 
-        fn on_modification(&mut self, event: &DebouncedEvent) -> Result<(), Box<dyn std::error::Error>> {
+        fn on_modification(
+            &mut self,
+            event: &DebouncedEvent,
+        ) -> Result<(), Box<dyn std::error::Error>> {
             if self.is_modification(&event) {
                 return self.on_file_change(&event);
             }
@@ -45,16 +48,18 @@ pub mod event_handle {
             }
         }
 
-        fn on_file_change(&mut self, event: &DebouncedEvent) -> Result<(), Box<dyn std::error::Error>> {
+        fn on_file_change(
+            &mut self,
+            event: &DebouncedEvent,
+        ) -> Result<(), Box<dyn std::error::Error>> {
             println!("File modified: {:?}", event);
             let path = self.to_path(event).unwrap();
             let path = path.as_path().to_str().unwrap();
 
-            let changes = self.store.get_differences_by_path(path);
-            let changes = diff::find_new_changes(path, &changes)?;
+            let changes = self.store.get_differences_by_path::<LineDifference>(path);
+            let changes = diff::find(path, &changes)?;
 
-            self.store
-                .store_all_differences(path, &changes)
+            self.store.store_all_differences(path, &changes)
         }
 
         fn on_file_remove(&self, event: &DebouncedEvent) {
