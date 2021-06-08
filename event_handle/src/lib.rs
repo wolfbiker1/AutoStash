@@ -1,6 +1,6 @@
 pub mod event_handle {
     use std::path::PathBuf;
-
+    use std::{process};
     use diff::LineDifference;
     use notify::DebouncedEvent;
     use std::sync::mpsc;
@@ -9,15 +9,15 @@ pub mod event_handle {
     pub struct EventHandle {
         store: Store,
         // type will be replaced soon
-        tx_sorted_stack: mpsc::Sender<String>,
-        tx_new_version: mpsc::Sender<String>,
+        tx_sorted_stack: mpsc::Sender<Vec<LineDifference>>,
+        tx_new_version: mpsc::Sender<Vec<LineDifference>>,
     }
 
     impl EventHandle {
         pub fn new(
             store: Store,
-            stack_transmitter: mpsc::Sender<String>,
-            version_transmitter: mpsc::Sender<String>,
+            stack_transmitter: mpsc::Sender<Vec<LineDifference>>,
+            version_transmitter: mpsc::Sender<Vec<LineDifference>>,
         ) -> EventHandle {
             EventHandle {
                 store,
@@ -65,13 +65,15 @@ pub mod event_handle {
             &mut self,
             event: &DebouncedEvent,
         ) -> Result<(), Box<dyn std::error::Error>> {
-            println!("File modified: {:?}", event);
             let path = self.to_path(event).unwrap();
             let path = path.as_path().to_str().unwrap();
 
             let changes = self.store.get_differences_by_path::<LineDifference>(path);
             let changes = diff::find(path, &changes)?;
-
+            self.tx_new_version.send(changes.clone()).unwrap_or_else(|err| {
+                eprintln!("Could not transmit data to TUI {:?}", err);
+                process::exit(1);
+            });
             self.store.store_all_differences(path, &changes)
         }
 

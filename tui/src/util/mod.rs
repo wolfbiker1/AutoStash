@@ -2,8 +2,9 @@
 pub mod event;
 
 use tui::widgets::ListState;
-
-
+use tui::text::{Span, Spans};
+use tui::style::{Color, Modifier, Style};
+use diff::LineDifference;
 pub struct TabsState<'a> {
     pub titles: Vec<&'a str>,
     pub index: usize,
@@ -24,6 +25,25 @@ impl<'a> TabsState<'a> {
             self.index = self.titles.len() - 1;
         }
     }
+}
+
+pub fn process_new_version(diffs: Vec<LineDifference>) -> Vec<Spans<'static>> {
+    let mut v: Vec<Span> = vec![];
+    let mut spans: Vec<Spans> = vec![];
+    for diff in &diffs {
+        v.push(Span::raw("\n"));
+        v.push(Span::styled(diff.line_number.to_string(), Style::default().fg(Color::Blue)));
+        v.push(Span::raw("->"));
+        v.push(Span::styled(diff.line.clone(), Style::default().fg(Color::Red)));
+        v.push(Span::raw("->"));
+        v.push(Span::styled(diff.changed_line.clone(), Style::default().fg(Color::Green)));
+        v.push(Span::raw("\n"));
+        spans.push(
+            Spans::from(v.clone())
+        );
+        v.clear();
+    }
+    spans
 }
 
 pub struct StatefulList<T> {

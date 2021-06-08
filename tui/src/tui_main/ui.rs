@@ -70,8 +70,11 @@ where
         )
         .margin(1)
         .split(area);
-    let block = Block::default().borders(Borders::ALL).title("Statistik");
-    f.render_widget(block, area);
+    let block = Block::default().borders(Borders::ALL).title("Differences");
+    let text: Vec<Spans>  = app.processed_diffs.clone();
+    // let text: Vec<Spans>  = Vec::new();
+    let paragraph = Paragraph::new(text).block(block).wrap(Wrap { trim: true });
+    f.render_widget(paragraph, area);
 
 }
 
@@ -106,7 +109,7 @@ where
                 .map(|i| ListItem::new(vec![Spans::from(Span::raw(*i))]))
                 .collect();
             let tasks = List::new(tasks)
-                .block(Block::default().borders(Borders::ALL).title("Filename"))
+                .block(Block::default().borders(Borders::ALL).title("Snapshot"))
                 .highlight_style(Style::default().add_modifier(Modifier::BOLD))
                 .highlight_symbol("x ");
             f.render_stateful_widget(tasks, chunks[0], &mut app.tasks.state);

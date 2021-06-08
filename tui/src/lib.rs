@@ -1,13 +1,11 @@
 mod tui_main;
 #[allow(dead_code)]
 mod util;
-
+use diff::LineDifference;
 use crate::{
     tui_main::{ui, App, Config, AutoStash}
 };
-
-use std::env::Args;
-
+use std::{process};
 use std::io;
 use std::sync::mpsc;
 use std::sync::{
@@ -88,8 +86,8 @@ use tui::{
     Terminal,
   };
 pub fn run_tui(args: std::env::Args) -> Result<(), Box<dyn Error>> {
-    let (tx, rx): (mpsc::Sender<String>, mpsc::Receiver<String>) = mpsc::channel();
-    let (tx1, rx1): (mpsc::Sender<String>, mpsc::Receiver<String>) = mpsc::channel();
+    let (tx, rx): (mpsc::Sender<Vec<LineDifference>>, mpsc::Receiver<Vec<LineDifference>>) = mpsc::channel();
+    let (tx1, rx_new_version): (mpsc::Sender<Vec<LineDifference>>, mpsc::Receiver<Vec<LineDifference>>) = mpsc::channel();
 
     let events = Events::with_config();
     let stdout = io::stdout().into_raw_mode()?;
@@ -99,14 +97,16 @@ pub fn run_tui(args: std::env::Args) -> Result<(), Box<dyn Error>> {
     let mut terminal = Terminal::new(backend)?;
 
     let config = Config::new(args).unwrap();
-    let mut f = AutoStash::new(&config, tx, tx1).unwrap();
+    let mut auto_stash = AutoStash::new(&config, tx, tx1).unwrap();
     let app = App::new("AutoStash");
 
     let mut app = app.unwrap();
     
-    let f1 = thread::spawn(move || {
-        // app.watch.start_watching(app.watch_path.as_str())
-        f.run();
+    thread::spawn(move || {
+        auto_stash.run().unwrap_or_else(|err| {
+            eprintln!("Could not join thread {:?}", err);
+            process::exit(1);
+        });
     });
 
 
@@ -114,24 +114,20 @@ pub fn run_tui(args: std::env::Args) -> Result<(), Box<dyn Error>> {
     loop {
         terminal.draw(|f| ui::draw(f, &mut app))?;
 
-        let h = stack_transmitter.try_recv();
-
-        // app.title = h.unwrap_err();
+        let h = rx.try_recv();
         match h {
             Ok(res) => {
-                app.title = string_to_static_str(res);
-                
             }
             Err(_) => {}
         }
 
 
-        let h1 = version_transmitter.try_recv();
+        let h1 = rx_new_version.try_recv();
 
-        // app.title = h.unwrap_err();
+        
         match h1 {
             Ok(res) => {
-                app.title = string_to_static_str(res);
+                app.processed_diffs = util::process_new_version(res);
                 
             }
             Err(_) => {}
