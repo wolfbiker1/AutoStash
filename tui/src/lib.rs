@@ -3,9 +3,8 @@ mod tui_main;
 mod util;
 
 use crate::{
-    tui_main::{ui, App}
+    tui_main::{ui, App, Config}
 };
-
 
 use std::io;
 use std::sync::mpsc;
@@ -22,7 +21,7 @@ pub enum Event<I> {
     Input(I),
     Tick,
 }
-
+// extern crate auto_stash;
 /// A small event handler that wrap termion input and tick events. Each event
 /// type is handled in its own thread and returned to a common `Receiver`
 pub struct Events {
@@ -81,7 +80,7 @@ use std::{error::Error};
 use termion::{input::MouseTerminal, raw::IntoRawMode, screen::AlternateScreen};
 use tui::{backend::TermionBackend, Terminal};
 
-pub fn run_tui(stack_transmitter: mpsc::Receiver<String>, version_transmitter: mpsc::Receiver<String>) -> Result<(), Box<dyn Error>> {
+pub fn run_tui<B>(stack_transmitter: mpsc::Receiver<String>, version_transmitter: mpsc::Receiver<String>,foo: &Config) -> Result<(), Box<dyn Error>> {
 
     let events = Events::with_config();
 
@@ -91,7 +90,8 @@ pub fn run_tui(stack_transmitter: mpsc::Receiver<String>, version_transmitter: m
     let backend = TermionBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    let mut app = App::new("AutoStash");
+    let mut app = App::new("AutoStash", foo);
+    let mut app = app.unwrap();
     loop {
         terminal.draw(|f| ui::draw(f, &mut app))?;
 

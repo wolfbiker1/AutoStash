@@ -4,9 +4,9 @@ use event_handle::event_handle::EventHandle;
 use filewatch::FileWatch;
 use std::process;
 
+use std::sync::mpsc;
 use store::store::Store;
 use tui;
-use std::sync::mpsc;
 
 pub struct AutoStash {
     watch_path: String,
@@ -23,7 +23,6 @@ pub struct AutoStash {
 //     rx_new_version: &'static mpsc::Receiver<String>,
 // }
 
-
 // impl Channels {
 //     pub fn new() -> Result<Channels, Box<dyn std::error::Error>> {
 //         let (tx, rx): (mpsc::Sender<String>, mpsc::Receiver<String>) = mpsc::channel();
@@ -38,9 +37,13 @@ pub struct AutoStash {
 // }
 
 impl AutoStash {
-    pub fn new(config: &Config, t1: mpsc::Sender<String>, t2: mpsc::Sender<String>) -> Result<AutoStash, Box<dyn std::error::Error>> {
+    pub fn new(
+        config: &Config,
+        t1: mpsc::Sender<String>,
+        t2: mpsc::Sender<String>,
+    ) -> Result<AutoStash, Box<dyn std::error::Error>> {
         let store = Store::new(config.store_path.as_str(), config.watch_path.as_str())?;
-        
+
         // let ch = Channels::new().unwrap();
 
         let event_handle = EventHandle::new(store, t1, t2);
@@ -55,17 +58,6 @@ impl AutoStash {
     }
 
     pub fn run(&mut self) -> Result<(), String> {
-        // let t = thread::spawn(move || {
-        //     tui::run_tui(self.rx_sorted_stack, self.rx_new_version).unwrap_or_else(|err| {
-        //         eprintln!("Could not run tui! {:?}", err);
-        //         process::exit(1);
-        //     });
-        // });
-
-        // t.join().unwrap_or_else(|err| {
-        //     eprintln!("Could not join thread {:?}", err);
-        //     process::exit(1);
-        // });
         self.watch.start_watching(self.watch_path.as_str())
     }
 }

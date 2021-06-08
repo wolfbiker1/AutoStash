@@ -645,7 +645,10 @@ name = "tui"
 version = "0.1.0"
 dependencies = [
  "argh",
+ "event_handle",
+ "filewatch",
  "rand",
+ "store",
  "termion",
  "tui 0.15.0",
 ]

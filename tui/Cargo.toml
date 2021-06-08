@@ -11,4 +11,6 @@ tui = "0.15"
 termion = "1.5"
 argh = "0.1"
 rand = "0.8"
-
+store = { path = "../store" }
+event_handle = { path = "../event_handle" }
+filewatch = { path = "../filewatch" }
