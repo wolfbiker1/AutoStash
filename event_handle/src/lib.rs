@@ -1,8 +1,8 @@
 pub mod event_handle {
-    use std::path::PathBuf;
-    use std::{process};
     use diff::LineDifference;
     use notify::DebouncedEvent;
+    use std::path::PathBuf;
+    use std::process;
     use std::sync::mpsc;
     use store::store::Store;
 
@@ -70,10 +70,12 @@ pub mod event_handle {
 
             let changes = self.store.get_differences_by_path::<LineDifference>(path);
             let changes = diff::find(path, &changes)?;
-            self.tx_new_version.send(changes.clone()).unwrap_or_else(|err| {
-                eprintln!("Could not transmit data to TUI {:?}", err);
-                process::exit(1);
-            });
+            self.tx_new_version
+                .send(changes.clone())
+                .unwrap_or_else(|err| {
+                    eprintln!("Could not transmit data to TUI {:?}", err);
+                    process::exit(1);
+                });
             self.store.store_all_differences(path, &changes)
         }
 

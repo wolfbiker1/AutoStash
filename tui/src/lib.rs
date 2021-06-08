@@ -14,6 +14,7 @@ use std::sync::{
 };
 use std::thread;
 
+use std::time::Duration;
 use termion::event::Key;
 use termion::input::TermRead;
 
@@ -52,6 +53,15 @@ impl Events {
                         }
                     }
                 }
+            })
+        
+        };
+        let _tick_handle = {
+            thread::spawn(move || loop {
+                if tx.send(Event::Tick).is_err() {
+                    break;
+                }
+                thread::sleep(Duration::from_millis(500));
             })
         };
         Events {
@@ -122,23 +132,22 @@ pub fn run_tui(args: std::env::Args) -> Result<(), Box<dyn Error>> {
         }
 
 
-        let h1 = rx_new_version.try_recv();
-
-        
-        match h1 {
-            Ok(res) => {
-                app.processed_diffs = util::process_new_version(res);
+        // let h1 = rx_new_version.try_recv();
+        // match h1 {
+        //     Ok(res) => {
+        //         app.processed_diffs = util::process_new_version(res);
                 
-            }
-            Err(_) => {}
-        }
+        //     }
+        //     Err(_) => {}
+        // }
+
+
         match events.next()? {
             Event::Input(key) => match key {
                 Key::Char(c) => {
                     app.on_key(c);
                 }
                 Key::Up => {
-                    app.title = "d";
                     app.on_up();
                 }
                 Key::Down => {
@@ -153,7 +162,15 @@ pub fn run_tui(args: std::env::Args) -> Result<(), Box<dyn Error>> {
                 _ => {}
             },
             Event::Tick => {
-                app.on_tick();
+                let h1 = rx_new_version.try_recv();
+                match h1 {
+                    Ok(res) => {
+                        app.processed_diffs = util::process_new_version(res);
+                        
+                    }
+                    Err(_) => {}
+                }
+                // app.on_tick();
             }
         }
         if app.should_quit {
