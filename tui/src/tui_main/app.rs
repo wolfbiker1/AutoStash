@@ -1,4 +1,4 @@
-use crate::util::{RandomSignal, SinSignal, StatefulList, TabsState};
+use crate::util::{StatefulList, TabsState};
 
 const TASKS: [&str; 2] = [
     "foo.txt", "bar.dat",
@@ -14,7 +14,7 @@ pub struct App<'a> {
     pub should_quit: bool,
     pub tabs: TabsState<'a>,
     pub show_chart: bool,
-    pub progress: f64,
+    // pub progress: f64,
     pub tasks: StatefulList<&'a str>,
     pub servers: Vec<LineDifference<'a>>
 }
@@ -26,7 +26,7 @@ impl<'a> App<'a> {
             should_quit: false,
             tabs: TabsState::new(vec![ "Statistic", "Info", "Overview"]),
             show_chart: true,
-            progress: 0.0,
+            // progress: 0.0,
             tasks: StatefulList::with_items(TASKS.to_vec()),
 
             servers: vec![
@@ -58,9 +58,6 @@ impl<'a> App<'a> {
         match c {
             'q' => {
                 self.should_quit = true;
-            }
-            't' => {
-                self.show_chart = !self.show_chart;
             }
             _ => {}
         }
