@@ -12,9 +12,12 @@ pub struct LineDifference<'a> {
     pub location: &'a str
 }
 
-pub struct App<'a> {
+pub struct myFoo {
     pub watch_path: String,
     pub watch: FileWatch,
+}
+
+pub struct App<'a> {
     pub title: &'a str,
     pub should_quit: bool,
     pub tabs: TabsState<'a>,
@@ -64,16 +67,28 @@ impl Config {
     }
 }
 
+impl myFoo {
+    pub fn new(config: &Config) -> Result<myFoo, Box<dyn std::error::Error>> {
+    let store = Store::new(config.store_path.as_str(), config.watch_path.as_str())?;
+    let event_handle = EventHandle::new(store);
+    let watch = FileWatch::new(config.debounce_time, event_handle)?;
+
+
+    Ok (myFoo {
+        watch,
+        watch_path: config.watch_path.clone(),
+    })
+    }
+    pub fn run(&mut self) -> Result<(), String> {
+        self.watch.start_watching(self.watch_path.as_str())
+    }
+}
+
 
 impl<'a> App<'a> {
-    pub fn new(title: &'a str, config: &Config) -> Result<App<'a>, Box<dyn std::error::Error>> {
-        let store = Store::new(config.store_path.as_str(), config.watch_path.as_str())?;
-        let event_handle = EventHandle::new(store);
-        let watch = FileWatch::new(config.debounce_time, event_handle)?;
+    pub fn new(title: &'a str) -> Result<App<'a>, Box<dyn std::error::Error>> {
 
         Ok (App {
-            watch,
-            watch_path: config.watch_path.clone(),
             title,
             should_quit: false,
             tabs: TabsState::new(vec![ "Statistic", "Info", "Overview"]),
@@ -89,7 +104,6 @@ impl<'a> App<'a> {
             ],
         })
     }
-
     pub fn on_up(&mut self) {
         self.tasks.previous();
     }

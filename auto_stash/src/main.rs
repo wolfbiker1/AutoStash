@@ -9,7 +9,7 @@ use tui;
 use std::thread;
 
 fn main() {
-    let stdout = io::stdout().into_raw_mode();
+    // let stdout = io::stdout().into_raw_mode();
     // let stdout = MouseTerminal::from(stdout);
     // let stdout = AlternateScreen::from(stdout);
     // let backend = TermionBackend::new(stdout);
@@ -23,13 +23,13 @@ fn main() {
         process::exit(1);
     });
 
-    let mut auto_stash = AutoStash::new(&config, tx, tx1).unwrap_or_else(|err| {
-        eprintln!("Problem creating auto stash: {:?}", err);
-        process::exit(1);
-    });
+    // let mut auto_stash = AutoStash::new(&config, tx, tx1).unwrap_or_else(|err| {
+    //     eprintln!("Problem creating auto stash: {:?}", err);
+    //     process::exit(1);
+    // });
 
     let t = thread::spawn(|| {
-        tui::run_tui(rx, rx1, &config).unwrap_or_else(|err| {
+        tui::run_tui(rx, rx1, env::args()).unwrap_or_else(|err| {
             eprintln!("Could not run tui! {:?}", err);
             process::exit(1);
         });

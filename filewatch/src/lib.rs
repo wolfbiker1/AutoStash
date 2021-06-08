@@ -6,6 +6,7 @@ use std::time::Duration;
 use notify::{watcher, DebouncedEvent, Error, RecommendedWatcher, RecursiveMode, Watcher};
 
 use event_handle::event_handle::EventHandle;
+
 pub struct FileWatch {
     event_handle: EventHandle,
     recv: Receiver<DebouncedEvent>,

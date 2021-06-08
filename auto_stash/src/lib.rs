@@ -36,31 +36,31 @@ pub struct AutoStash {
 //     }
 // }
 
-impl AutoStash {
-    pub fn new(
-        config: &Config,
-        t1: mpsc::Sender<String>,
-        t2: mpsc::Sender<String>,
-    ) -> Result<AutoStash, Box<dyn std::error::Error>> {
-        let store = Store::new(config.store_path.as_str(), config.watch_path.as_str())?;
+// impl AutoStash {
+//     pub fn new(
+//         config: &Config,
+//         t1: mpsc::Sender<String>,
+//         t2: mpsc::Sender<String>,
+//     ) -> Result<AutoStash, Box<dyn std::error::Error>> {
+//         let store = Store::new(config.store_path.as_str(), config.watch_path.as_str())?;
 
-        // let ch = Channels::new().unwrap();
+//         // let ch = Channels::new().unwrap();
 
-        let event_handle = EventHandle::new(store, t1, t2);
-        let watch = FileWatch::new(config.debounce_time, event_handle)?;
+//         let event_handle = EventHandle::new(store, t1, t2);
+//         let watch = FileWatch::new(config.debounce_time, event_handle)?;
 
-        Ok(AutoStash {
-            watch,
-            watch_path: config.watch_path.clone(),
-            // rx_new_version: ch.rx_new_version,
-            // rx_sorted_stack: ch.rx_sorted_stack
-        })
-    }
+//         Ok(AutoStash {
+//             watch,
+//             watch_path: config.watch_path.clone(),
+//             // rx_new_version: ch.rx_new_version,
+//             // rx_sorted_stack: ch.rx_sorted_stack
+//         })
+//     }
 
-    pub fn run(&mut self) -> Result<(), String> {
-        self.watch.start_watching(self.watch_path.as_str())
-    }
-}
+//     pub fn run(&mut self) -> Result<(), String> {
+//         self.watch.start_watching(self.watch_path.as_str())
+//     }
+// }
 
 #[derive(Clone)]
 pub struct Config {

@@ -15,9 +15,8 @@ pub mod event_handle {
 
     impl EventHandle {
         pub fn new(
-            store: Store
-            // stack_transmitter: mpsc::Sender<String>,
-            // version_transmitter: mpsc::Sender<String>,
+            store: Store, // stack_transmitter: mpsc::Sender<String>,
+                          // version_transmitter: mpsc::Sender<String>
         ) -> EventHandle {
             EventHandle {
                 store,
