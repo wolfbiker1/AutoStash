@@ -64,13 +64,12 @@ pub mod event_handle {
             &mut self,
             event: &DebouncedEvent,
         ) -> Result<(), Box<dyn std::error::Error>> {
-            //println!("File modified: {:?}", event);
+            println!("File modified: {:?}", event);
             let path = self.to_path(event).unwrap();
             let path = path.as_path().to_str().unwrap();
 
-            let changes = self.store.get_differences_by_path(path);
-            // self.tx_new_version.send(String::from("bar!"));
-            let changes = diff::find_new_changes(path, &changes)?;
+            let changes = self.store.get_differences_by_path::<LineDifference>(path);
+            let changes = diff::find(path, &changes)?;
 
             self.store.store_all_differences(path, &changes)
         }

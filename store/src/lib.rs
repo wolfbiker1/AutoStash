@@ -14,7 +14,6 @@ pub mod store {
 
     static CHANGE_PEEK_STACK: &str = "CHANGE_PEEK_STACK";
     static CHANGE_MARKER: &str = "CHANGE_MARKER";
-
     pub struct Store {
         db: PickleDb,
     }
@@ -23,7 +22,7 @@ pub mod store {
         let mut db = PickleDb::new(
             store_path,
             PickleDbDumpPolicy::AutoDump,
-            SerializationMethod::Json,
+            SerializationMethod::Yaml,
         );
 
         create_change_stack(&mut db)?;
@@ -51,30 +50,24 @@ pub mod store {
                     let path = entry.path();
                     let p = path
                         .to_str()
-                        .ok_or_else(|| SimpleError::new("couldn't find path"))?;
-
+                        .unwrap_or_else(|| "couldn't find path");
                     db.lcreate(p)?;
-                    store_lines_from_file(p, db)
+                    store_lines_from_file(p.to_string(), db)
                 },
             )
             .find(|e| e.is_err())
             .unwrap_or_else(|| Ok(()))
     }
 
-    fn store_lines_from_file(path: &str, db: &mut PickleDb) -> Result<(), Box<dyn error::Error>> {
-        let file = File::open(path)?;
+    fn store_lines_from_file(path: String, db: &mut PickleDb) -> Result<(), Box<dyn error::Error>> {
+        let file = File::open(path.clone())?;
         io::BufReader::new(file)
             .lines()
             .enumerate()
             .map(|(index, line)| {
                 db.ladd(
-                    path,
-                    &LineDifference::new(
-                        String::from_str(path).unwrap(),
-                        index,
-                        "".to_string(),
-                        line.unwrap(),
-                    ),
+                    path.as_str(),
+                    &LineDifference::new(path.clone(), index, "".to_string(), line.unwrap()),
                 )
                 .map(|_| ())
                 .ok_or_else(|| "couldn't add line difference".into())
@@ -86,8 +79,8 @@ pub mod store {
     fn load(store_path: &str) -> Result<PickleDb, Box<dyn error::Error>> {
         PickleDb::load(
             store_path,
-            PickleDbDumpPolicy::DumpUponRequest,
-            SerializationMethod::Json,
+            PickleDbDumpPolicy::AutoDump,
+            SerializationMethod::Yaml,
         )
         .map_err(|err| err.into())
     }
@@ -123,11 +116,14 @@ pub mod store {
             self.redo_by(1)
         }
 
-        pub fn get_differences_by_path<T: DeserializeOwned>(&self, path: &str) -> Vec<T> {
+        pub fn get_differences_by_path<T: DeserializeOwned + std::fmt::Debug>(
+            &self,
+            path: &str,
+        ) -> Vec<T> {
             self.db
                 .liter(path)
-                .map(|e| e.get_item().unwrap())
-                .collect_vec()
+                .map(|e| e.get_item::<T>().unwrap())
+                .collect()
         }
 
         pub fn store_all_differences(
