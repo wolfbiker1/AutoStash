@@ -106,18 +106,15 @@ pub fn run_tui(args: std::env::Args) -> Result<(), Box<dyn Error>> {
         mpsc::Receiver<(u8, u8)>,
     ) = mpsc::channel();
 
-    // let events = Events::with_config();
-    // let stdout = io::stdout().into_raw_mode()?;
-    // let stdout = MouseTerminal::from(stdout);
-    // let stdout = AlternateScreen::from(stdout);
-
+    
     enable_raw_mode()?;
-
     let mut stdout = stdout();
     execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
+    
 
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
+    terminal.clear()?;
 
     let config = Config::new(args).unwrap();
     let mut auto_stash = AutoStash::new(&config, tx, tx1, undo_redo_rx).unwrap();
@@ -154,7 +151,6 @@ pub fn run_tui(args: std::env::Args) -> Result<(), Box<dyn Error>> {
             }
         }
     });
-    terminal.clear()?;
 
     loop {
         terminal.draw(|f| ui::draw(f, &mut app))?;
@@ -197,6 +193,10 @@ pub fn run_tui(args: std::env::Args) -> Result<(), Box<dyn Error>> {
             }
         }
         if app.should_quit {
+            execute!(terminal.backend_mut(), LeaveAlternateScreen, event::DisableMouseCapture)?;
+            terminal.show_cursor()?;
+            // let mut stdout = stdout();
+            // execute!(LeaveAlternateScreen, DisableMouseCapture)?;
             disable_raw_mode()?;
             break;
         }

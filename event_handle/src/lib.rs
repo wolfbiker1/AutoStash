@@ -31,8 +31,7 @@ pub mod event_handle {
             }
         }
 
-        pub fn listen_to_undo_redo_command(&'static mut self, rx_undo_redo: mpsc::Receiver<(u8, u8)>)/*  -> Result<(), Box<dyn std::error::Error>>  */{
-            // let s = self.store;
+        pub fn listen_to_undo_redo_command(&'static mut self, rx_undo_redo: mpsc::Receiver<(u8, u8)>) {
             thread::spawn(move || loop {
                 let cmd = rx_undo_redo.recv();
                 match cmd {
@@ -41,15 +40,13 @@ pub mod event_handle {
                         if res.0 == 0 {
                             &self.store.undo_by(res.1 as usize);
                         } else {
-                        // redo
-                            // &self.store.redo_by(res.1 as usize);
+                            &self.store.redo_by(res.1 as usize);
                         }
                     }
                     Err(_) => {
                         eprintln!("Event was not catched");
                     }
                 }
-                //thread::sleep(Duration::from_millis(500));
             });
         }
 
