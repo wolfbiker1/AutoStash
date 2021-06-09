@@ -5,12 +5,15 @@ pub mod event_handle {
     use std::process;
     use std::sync::mpsc;
     use store::store::Store;
+    use std::thread;
+    use std::time::{Duration};
 
     pub struct EventHandle {
         store: Store,
         // type will be replaced soon
-        tx_sorted_stack: mpsc::Sender<Vec<LineDifference>>,
-        tx_new_version: mpsc::Sender<Vec<LineDifference>>,
+        stack_transmitter: mpsc::Sender<Vec<LineDifference>>,
+        version_transmitter: mpsc::Sender<Vec<LineDifference>>,
+        undo_redo_receiver: mpsc::Receiver<(u8, u8)>,
     }
 
     impl EventHandle {
@@ -18,13 +21,38 @@ pub mod event_handle {
             store: Store,
             stack_transmitter: mpsc::Sender<Vec<LineDifference>>,
             version_transmitter: mpsc::Sender<Vec<LineDifference>>,
+            undo_redo_receiver: mpsc::Receiver<(u8, u8)>
         ) -> EventHandle {
             EventHandle {
                 store,
-                tx_sorted_stack: stack_transmitter,
-                tx_new_version: version_transmitter,
+                stack_transmitter,
+                version_transmitter,
+                undo_redo_receiver
             }
         }
+
+        pub fn listen_to_undo_redo_command(&'static mut self, rx_undo_redo: mpsc::Receiver<(u8, u8)>)/*  -> Result<(), Box<dyn std::error::Error>>  */{
+            // let s = self.store;
+            thread::spawn(move || loop {
+                let cmd = rx_undo_redo.recv();
+                match cmd {
+                    Ok(res) => {
+                        // undo
+                        if res.0 == 0 {
+                            &self.store.undo_by(res.1 as usize);
+                        } else {
+                        // redo
+                            // &self.store.redo_by(res.1 as usize);
+                        }
+                    }
+                    Err(_) => {
+                        eprintln!("Event was not catched");
+                    }
+                }
+                //thread::sleep(Duration::from_millis(500));
+            });
+        }
+
 
         pub fn handle(&mut self, event: DebouncedEvent) -> Result<(), Box<dyn std::error::Error>> {
             let path = self.to_path(&event)?;
@@ -70,7 +98,7 @@ pub mod event_handle {
 
             let changes = self.store.get_changes::<LineDifference>(path);
             let changes = diff::find(path, &changes)?;
-            self.tx_new_version
+            self.version_transmitter
                 .send(changes.clone())
                 .unwrap_or_else(|err| {
                     eprintln!("Could not transmit data to TUI {:?}", err);

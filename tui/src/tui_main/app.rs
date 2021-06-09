@@ -118,9 +118,11 @@ impl AutoStash {
         config: &Config,
         stack_sender: mpsc::Sender<Vec<LineDifference>>,
         version_sender: mpsc::Sender<Vec<LineDifference>>,
+        undo_redo_sender: mpsc::Receiver<(u8, u8)>
     ) -> Result<AutoStash, Box<dyn std::error::Error>> {
         let store = Store::new(config.store_path.as_str(), config.watch_path.as_str())?;
-        let event_handle = EventHandle::new(store, stack_sender, version_sender);
+
+        let event_handle = EventHandle::new(store, stack_sender, version_sender, undo_redo_sender);
         let watch = FileWatch::new(config.debounce_time, event_handle)?;
 
         Ok(AutoStash {

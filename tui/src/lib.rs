@@ -18,7 +18,7 @@ pub enum Event<I> {
     Tick,
 }
 
-// extern crate auto_
+// extern   crate auto_
 /// type is handled in its own thread and returned to a common `Receiver`
 // pub struct Events {
 //     rx: mpsc::Receiver<Event<Key>>,
@@ -101,6 +101,11 @@ pub fn run_tui(args: std::env::Args) -> Result<(), Box<dyn Error>> {
         mpsc::Receiver<Vec<LineDifference>>,
     ) = mpsc::channel();
 
+    let (undo_redo_tx, undo_redo_rx): (
+        mpsc::Sender<(u8, u8)>,
+        mpsc::Receiver<(u8, u8)>,
+    ) = mpsc::channel();
+
     // let events = Events::with_config();
     // let stdout = io::stdout().into_raw_mode()?;
     // let stdout = MouseTerminal::from(stdout);
@@ -115,7 +120,7 @@ pub fn run_tui(args: std::env::Args) -> Result<(), Box<dyn Error>> {
     let mut terminal = Terminal::new(backend)?;
 
     let config = Config::new(args).unwrap();
-    let mut auto_stash = AutoStash::new(&config, tx, tx1).unwrap();
+    let mut auto_stash = AutoStash::new(&config, tx, tx1, undo_redo_rx).unwrap();
     let app = App::new("AutoStash");
 
     let mut app = app.unwrap();
