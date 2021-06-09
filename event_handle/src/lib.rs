@@ -56,7 +56,7 @@ pub mod event_handle {
             let path = self.to_path(event).unwrap();
             let path = path.as_path().to_str().unwrap();
 
-            let changes = self.store.get_differences_by_path::<LineDifference>(path);
+            let changes = self.store.get_changes::<LineDifference>(path);
             let changes = diff::find(path, &changes)?;
 
             self.store.store_all_differences(path, &changes)

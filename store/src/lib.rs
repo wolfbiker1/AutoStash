@@ -1,6 +1,7 @@
 extern crate simple_error;
 
 pub mod store {
+    use chrono::Utc;
     use chrono::{NaiveDateTime, NaiveTime};
     use diff::LineDifference;
     use itertools::Itertools;
@@ -18,6 +19,12 @@ pub mod store {
     pub struct Store {
         db: PickleDb,
         pub time_slot_hours: u32,
+    }
+
+    pub struct Version {
+        pub name: String,
+        pub datetime: NaiveDateTime,
+        pub changes: Vec<LineDifference>,
     }
 
     fn version_zero(store_path: &str, watch_path: &str) -> Result<PickleDb, Box<dyn error::Error>> {
@@ -107,10 +114,48 @@ pub mod store {
             self.undo(count, false)
         }
 
-        pub fn get_differences_by_path<T: DeserializeOwned + std::fmt::Debug>(
-            &self,
-            path: &str,
-        ) -> Vec<T> {
+        pub fn view(&mut self) -> Result<Vec<Version>, Box<dyn error::Error>> {
+            let marker = self.get_change_marker()?;
+            let now = Utc::now().naive_utc();
+            
+            Ok(self
+                .db
+                .liter(CHANGE_PEEK_STACK)
+                .take(marker)
+                .map(|e| -> String { e.get_item().unwrap() })
+                .dedup_by(|a, b| a.eq(b))
+                .enumerate()
+                .sorted_by(|a, b| Ord::cmp(&b.0, &a.0))
+                .map(|f| -> Version {
+                    let path = f.1;
+                    let mut earliest_datetime = now;
+                    let changes: Vec<LineDifference> = self
+                        .get_changes::<LineDifference>(path.as_str())
+                        .iter()
+                        .sorted_by(|a, b| diff::sort(b.date_time.as_str(), a.date_time.as_str()))
+                        .take_while(|e| {
+                            let datetime =
+                                NaiveDateTime::parse_from_str(e.date_time.as_str(), diff::RFC3339)
+                                    .unwrap();
+                            if earliest_datetime.timestamp() > datetime.timestamp() {
+                                earliest_datetime = datetime;
+                            }
+                            let time_frame = i64::from(self.time_slot_hours * 60 * 60);
+                            now.timestamp() - time_frame < datetime.timestamp()
+                        })
+                        .map(|e| e.clone())
+                        .collect_vec();
+
+                    Version {
+                        name: path,
+                        datetime: earliest_datetime,
+                        changes,
+                    }
+                })
+                .collect_vec())
+        }
+
+        pub fn get_changes<T: DeserializeOwned + std::fmt::Debug>(&self, path: &str) -> Vec<T> {
             self.db
                 .liter(path)
                 .map(|e| e.get_item::<T>().unwrap())
@@ -129,29 +174,27 @@ pub mod store {
             self.db
                 .ladd(CHANGE_PEEK_STACK, &path.to_string())
                 .ok_or_else(|| "couldn't add file path to change peek stack")?;
-            let peek_stack_length = self
-                .get_differences_by_path::<String>(CHANGE_PEEK_STACK)
-                .len();
+            let peek_stack_length = self.get_changes::<String>(CHANGE_PEEK_STACK).len();
 
             self.set_change_marker(&peek_stack_length)
         }
 
-        fn undo(
-            &mut self,
-            count: usize,
-            previous: bool,
-        ) -> Result<(), Box<dyn error::Error>> {
+        fn undo(&mut self, count: usize, previous: bool) -> Result<(), Box<dyn error::Error>> {
             // Peek stack backwards by count
             // Undo line differences on the peeked files for certain versioning
             // Decrement change marker by count
 
-            let file_stack = self.peek_files(count, previous);
+            let file_stack = self.peek_files(count, previous)?;
             self.undo_files(file_stack)
             //self.decrement_change_marker_by(count)
         }
 
-        fn peek_files(&mut self, count: usize, previous: bool) -> Vec<String> {
-            let marker = self.stack_marker();
+        fn peek_files(
+            &mut self,
+            count: usize,
+            previous: bool,
+        ) -> Result<Vec<String>, Box<dyn error::Error>> {
+            let marker = self.get_change_marker()?;
             let (begin, end);
             if previous {
                 begin = marker - count;
@@ -161,19 +204,20 @@ pub mod store {
                 end = marker + count;
             }
 
-            self.db
+            Ok(self
+                .db
                 .liter(CHANGE_PEEK_STACK)
                 .skip(begin)
                 .take(end)
                 .map(|e| e.get_item::<String>().unwrap())
                 .dedup_by(|a, b| a.eq(b))
-                .collect()
+                .collect())
         }
 
         fn undo_files(&self, file_stack: Vec<String>) -> Result<(), Box<dyn error::Error>> {
             file_stack.iter().for_each(|file| {
                 let changed_lines = self
-                    .get_differences_by_path::<LineDifference>(file)
+                    .get_changes::<LineDifference>(file)
                     .iter()
                     .sorted_by(|a, b| diff::sort(b.date_time.as_str(), a.date_time.as_str()))
                     .map(|e| e.clone())
@@ -232,10 +276,6 @@ pub mod store {
                 })
                 .map(|e| e.clone())
                 .collect()
-        }
-
-        fn stack_marker(&mut self) -> usize {
-            self.db.get(CHANGE_MARKER).unwrap()
         }
 
         fn increment_change_marker_by(
