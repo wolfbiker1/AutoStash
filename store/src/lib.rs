@@ -18,13 +18,29 @@ pub mod store {
     static CHANGE_MARKER: &str = "CHANGE_MARKER";
     pub struct Store {
         db: PickleDb,
-        pub time_slot_hours: u32,
+        pub time_slot: TimeSlot,
     }
 
     pub struct Version {
         pub name: String,
         pub datetime: NaiveDateTime,
         pub changes: Vec<LineDifference>,
+    }
+
+    pub enum TimeSlot {
+        HOUR,
+        DAY,
+        WEEK,
+    }
+
+    impl TimeSlot {
+        pub fn value(&self) -> u32 {
+            match &self {
+                &Self::HOUR => 1 * 60 * 60,
+                &Self::DAY => 24 * &Self::DAY.value(),
+                &Self::WEEK => 7 * 24 * &Self::DAY.value(),
+            }
+        }
     }
 
     fn version_zero(store_path: &str, watch_path: &str) -> Result<PickleDb, Box<dyn error::Error>> {
@@ -102,7 +118,7 @@ pub mod store {
 
             Ok(Store {
                 db,
-                time_slot_hours: 1,
+                time_slot: TimeSlot::HOUR,
             })
         }
 
@@ -117,7 +133,7 @@ pub mod store {
         pub fn view(&mut self) -> Result<Vec<Version>, Box<dyn error::Error>> {
             let marker = self.get_change_marker()?;
             let now = Utc::now().naive_utc();
-            
+
             Ok(self
                 .db
                 .liter(CHANGE_PEEK_STACK)
@@ -134,13 +150,14 @@ pub mod store {
                         .iter()
                         .sorted_by(|a, b| diff::sort(b.date_time.as_str(), a.date_time.as_str()))
                         .take_while(|e| {
+                            // TODO: Propagate error
                             let datetime =
                                 NaiveDateTime::parse_from_str(e.date_time.as_str(), diff::RFC3339)
                                     .unwrap();
                             if earliest_datetime.timestamp() > datetime.timestamp() {
                                 earliest_datetime = datetime;
                             }
-                            let time_frame = i64::from(self.time_slot_hours * 60 * 60);
+                            let time_frame = i64::from(self.time_slot.value());
                             now.timestamp() - time_frame < datetime.timestamp()
                         })
                         .map(|e| e.clone())
@@ -162,7 +179,7 @@ pub mod store {
                 .collect()
         }
 
-        pub fn store_all_differences(
+        pub fn store_changes(
             &mut self,
             path: &str,
             changes: &Vec<LineDifference>,
@@ -223,13 +240,13 @@ pub mod store {
                     .map(|e| e.clone())
                     .collect();
                 // TODO: propagate error
-                self.undo_line_differences(self.restrict_by_time_slot(changed_lines))
+                self.undo_changes(self.restrict_by_time_slot(changed_lines))
                     .unwrap()
             });
             Ok(())
         }
 
-        fn undo_line_differences(
+        fn undo_changes(
             &self,
             changed_lines: Vec<LineDifference>,
         ) -> Result<(), Box<dyn error::Error>> {
@@ -264,7 +281,7 @@ pub mod store {
                 diff::RFC3339,
             )
             .unwrap();
-            let limit_time = latest_time.time() - NaiveTime::from_hms(self.time_slot_hours, 0, 0);
+            let limit_time = latest_time.time() - NaiveTime::from_hms(self.time_slot.value(), 0, 0);
 
             changed_lines
                 .iter()

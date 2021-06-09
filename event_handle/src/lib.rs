@@ -59,7 +59,7 @@ pub mod event_handle {
             let changes = self.store.get_changes::<LineDifference>(path);
             let changes = diff::find(path, &changes)?;
 
-            self.store.store_all_differences(path, &changes)
+            self.store.store_changes(path, &changes)
         }
 
         fn on_file_remove(&self, event: &DebouncedEvent) {
