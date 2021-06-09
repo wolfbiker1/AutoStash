@@ -1,9 +1,6 @@
 use diff::LineDifference;
 use tui::style::{Color, Modifier, Style};
 use tui::text::{Span, Spans};
-// #[cfg(feature = "termion")]
-// pub mod event;
-
 
 use tui::widgets::ListState;
 pub struct TabsState<'a> {

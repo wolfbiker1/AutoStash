@@ -13,16 +13,12 @@ use std::sync::{
 use std::thread;
 
 use std::time::{Duration, Instant};
-// use termion::event::Key;
-// use termion::input::TermRead;
-
 pub enum Event<I> {
     Input(I),
     Tick,
 }
 
 // extern crate auto_
-/// A small event handler that wrap termion input and tick events. Each event
 /// type is handled in its own thread and returned to a common `Receiver`
 // pub struct Events {
 //     rx: mpsc::Receiver<Event<Key>>,
@@ -84,8 +80,6 @@ fn string_to_static_str(s: String) -> &'static str {
 }
 
 use std::{error::Error, io::stdout};
-// use termion::{input::MouseTerminal, raw::IntoRawMode, screen::AlternateScreen};
-// use tui::{backend::TermionBackend, backend::CrosstermBackend, Terminal};
 use tui::{
     backend::{Backend, CrosstermBackend},
     Terminal,

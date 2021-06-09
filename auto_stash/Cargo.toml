@@ -12,5 +12,3 @@ filewatch = { path = "../filewatch" }
 store = { path = "../store" }
 event_handle = { path = "../event_handle" }
 tui = { path = "../tui" }
-#tui = "0.15"
-termion = "1.5"
