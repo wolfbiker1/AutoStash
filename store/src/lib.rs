@@ -37,8 +37,8 @@ pub mod store {
         pub fn value(&self) -> u32 {
             match &self {
                 &Self::HOUR => 1 * 60 * 60,
-                &Self::DAY => 24 * &Self::DAY.value(),
-                &Self::WEEK => 7 * 24 * &Self::DAY.value(),
+                &Self::DAY => 24 * &Self::HOUR.value(),
+                &Self::WEEK => 7 * &Self::DAY.value(),
             }
         }
     }
