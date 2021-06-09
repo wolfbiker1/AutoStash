@@ -50,13 +50,13 @@ pub mod store {
             SerializationMethod::Yaml,
         );
 
-        create_change_stack(&mut db)?;
+        init_change_stack(&mut db)?;
         store_all_files(watch_path, &mut db)?;
 
         Ok(db)
     }
 
-    fn create_change_stack(db: &mut PickleDb) -> Result<(), Box<dyn error::Error>> {
+    fn init_change_stack(db: &mut PickleDb) -> Result<(), Box<dyn error::Error>> {
         db.lcreate(CHANGE_PEEK_STACK)?;
         db.lcreate(CHANGE_MARKER)?;
         db.set(CHANGE_MARKER, &0).map_err(|err| err.into())
