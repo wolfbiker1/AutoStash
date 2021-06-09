@@ -1,6 +1,8 @@
 extern crate simple_error;
 
 pub mod store {
+    use chrono::Utc;
+    use chrono::{NaiveDateTime, NaiveTime};
     use diff::LineDifference;
     use itertools::Itertools;
     use pickledb::{PickleDb, PickleDbDumpPolicy, SerializationMethod};
@@ -8,14 +10,37 @@ pub mod store {
     use simple_error::SimpleError;
     use std::error;
     use std::fs::File;
+    use std::io::Write;
     use std::io::{self, BufRead};
-    use std::str::FromStr;
     use walkdir::{DirEntry, WalkDir};
 
     static CHANGE_PEEK_STACK: &str = "CHANGE_PEEK_STACK";
     static CHANGE_MARKER: &str = "CHANGE_MARKER";
     pub struct Store {
         db: PickleDb,
+        pub time_slot: TimeSlot,
+    }
+
+    pub struct Version {
+        pub name: String,
+        pub datetime: NaiveDateTime,
+        pub changes: Vec<LineDifference>,
+    }
+
+    pub enum TimeSlot {
+        HOUR,
+        DAY,
+        WEEK,
+    }
+
+    impl TimeSlot {
+        pub fn value(&self) -> u32 {
+            match &self {
+                &Self::HOUR => 1 * 60 * 60,
+                &Self::DAY => 24 * &Self::HOUR.value(),
+                &Self::WEEK => 7 * &Self::DAY.value(),
+            }
+        }
     }
 
     fn version_zero(store_path: &str, watch_path: &str) -> Result<PickleDb, Box<dyn error::Error>> {
@@ -91,40 +116,70 @@ pub mod store {
             }
             let db = db?;
 
-            Ok(Store { db })
+            Ok(Store {
+                db,
+                time_slot: TimeSlot::HOUR,
+            })
         }
 
-        pub fn undo_by(&mut self, count: usize) {
-            // Peek stack backwards by count
-            // Undo line differences on the peeked files for certain versioning
-            // Decrement change marker by count
+        pub fn undo_by(&mut self, count: usize) -> Result<(), Box<dyn error::Error>> {
+            self.undo(count, true)
         }
 
-        pub fn undo(&mut self) {
-            self.undo_by(1)
+        pub fn redo_by(&mut self, count: usize) -> Result<(), Box<dyn error::Error>> {
+            self.undo(count, false)
         }
 
-        pub fn redo_by(&mut self, count: usize) {
-            // Peek stack forwards by count
-            // Redo line differences on the peeked files for certain versioning
-            // Increment change marker by count
+        pub fn view(&mut self) -> Result<Vec<Version>, Box<dyn error::Error>> {
+            let marker = self.get_change_marker()?;
+            let now = Utc::now().naive_utc();
+
+            Ok(self
+                .db
+                .liter(CHANGE_PEEK_STACK)
+                .take(marker)
+                .map(|e| -> String { e.get_item().unwrap() })
+                .dedup_by(|a, b| a.eq(b))
+                .enumerate()
+                .sorted_by(|a, b| Ord::cmp(&b.0, &a.0))
+                .map(|f| -> Version {
+                    let path = f.1;
+                    let mut earliest_datetime = now;
+                    let changes: Vec<LineDifference> = self
+                        .get_changes::<LineDifference>(path.as_str())
+                        .iter()
+                        .sorted_by(|a, b| diff::sort(b.date_time.as_str(), a.date_time.as_str()))
+                        .take_while(|e| {
+                            // TODO: Propagate error
+                            let datetime =
+                                NaiveDateTime::parse_from_str(e.date_time.as_str(), diff::RFC3339)
+                                    .unwrap();
+                            if earliest_datetime.timestamp() > datetime.timestamp() {
+                                earliest_datetime = datetime;
+                            }
+                            let time_frame = i64::from(self.time_slot.value());
+                            now.timestamp() - time_frame < datetime.timestamp()
+                        })
+                        .map(|e| e.clone())
+                        .collect_vec();
+
+                    Version {
+                        name: path,
+                        datetime: earliest_datetime,
+                        changes,
+                    }
+                })
+                .collect_vec())
         }
 
-        pub fn redo(&mut self) {
-            self.redo_by(1)
-        }
-
-        pub fn get_differences_by_path<T: DeserializeOwned + std::fmt::Debug>(
-            &self,
-            path: &str,
-        ) -> Vec<T> {
+        pub fn get_changes<T: DeserializeOwned + std::fmt::Debug>(&self, path: &str) -> Vec<T> {
             self.db
                 .liter(path)
                 .map(|e| e.get_item::<T>().unwrap())
                 .collect()
         }
 
-        pub fn store_all_differences(
+        pub fn store_changes(
             &mut self,
             path: &str,
             changes: &Vec<LineDifference>,
@@ -136,11 +191,108 @@ pub mod store {
             self.db
                 .ladd(CHANGE_PEEK_STACK, &path.to_string())
                 .ok_or_else(|| "couldn't add file path to change peek stack")?;
-            let peek_stack_length = self
-                .get_differences_by_path::<String>(CHANGE_PEEK_STACK)
-                .len();
+            let peek_stack_length = self.get_changes::<String>(CHANGE_PEEK_STACK).len();
 
             self.set_change_marker(&peek_stack_length)
+        }
+
+        fn undo(&mut self, count: usize, previous: bool) -> Result<(), Box<dyn error::Error>> {
+            // Peek stack backwards by count
+            // Undo line differences on the peeked files for certain versioning
+            // Decrement change marker by count
+
+            let file_stack = self.peek_files(count, previous)?;
+            self.undo_files(file_stack)
+            //self.decrement_change_marker_by(count)
+        }
+
+        fn peek_files(
+            &mut self,
+            count: usize,
+            previous: bool,
+        ) -> Result<Vec<String>, Box<dyn error::Error>> {
+            let marker = self.get_change_marker()?;
+            let (begin, end);
+            if previous {
+                begin = marker - count;
+                end = marker;
+            } else {
+                begin = marker;
+                end = marker + count;
+            }
+
+            Ok(self
+                .db
+                .liter(CHANGE_PEEK_STACK)
+                .skip(begin)
+                .take(end)
+                .map(|e| e.get_item::<String>().unwrap())
+                .dedup_by(|a, b| a.eq(b))
+                .collect())
+        }
+
+        fn undo_files(&self, file_stack: Vec<String>) -> Result<(), Box<dyn error::Error>> {
+            file_stack.iter().for_each(|file| {
+                let changed_lines = self
+                    .get_changes::<LineDifference>(file)
+                    .iter()
+                    .sorted_by(|a, b| diff::sort(b.date_time.as_str(), a.date_time.as_str()))
+                    .map(|e| e.clone())
+                    .collect();
+                // TODO: propagate error
+                self.undo_changes(self.restrict_by_time_slot(changed_lines))
+                    .unwrap()
+            });
+            Ok(())
+        }
+
+        fn undo_changes(
+            &self,
+            changed_lines: Vec<LineDifference>,
+        ) -> Result<(), Box<dyn error::Error>> {
+            let path = changed_lines[0].path.clone();
+            let file = File::open(path.clone())?;
+            let reverted_lines: Vec<String> = io::BufReader::new(file)
+                .lines()
+                .map(|l| l.unwrap())
+                .enumerate()
+                .map(|(index, line)| {
+                    let found = changed_lines.iter().find(|l| l.line_number.eq(&index));
+                    if found.is_some() {
+                        let found = found.unwrap();
+                        if found.line.eq(&line) {
+                            return found.changed_line.clone();
+                        }
+
+                        return found.line.clone();
+                    }
+                    return line;
+                })
+                .collect();
+
+            let mut file = File::open(path.clone())?;
+            file.write_all(reverted_lines.join("").as_bytes())
+                .map_err(|err| err.into())
+        }
+
+        fn restrict_by_time_slot(&self, changed_lines: Vec<LineDifference>) -> Vec<LineDifference> {
+            let latest_time = NaiveDateTime::parse_from_str(
+                changed_lines.last().unwrap().date_time.as_str(),
+                diff::RFC3339,
+            )
+            .unwrap();
+            let limit_time = latest_time.time() - NaiveTime::from_hms(self.time_slot.value(), 0, 0);
+
+            changed_lines
+                .iter()
+                .filter(|line| {
+                    let time =
+                        NaiveDateTime::parse_from_str(line.date_time.as_str(), diff::RFC3339)
+                            .unwrap();
+                    latest_time - time <= limit_time
+                })
+                .map(|e| e.clone())
+                .collect()
         }
 
         fn increment_change_marker_by(

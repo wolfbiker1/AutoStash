@@ -1,11 +1,11 @@
-use chrono::{NaiveDateTime, Offset, Utc};
+use chrono::{NaiveDateTime, Utc};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use std::fs::{remove_file, File};
 use std::io::Write;
 use std::io::{self, BufRead};
 
-static DATETIME_FORMAT: &str = "%Y-%m-%dT%H:%M:%S%.9f%:z";
+pub static RFC3339: &str = "%Y-%m-%dT%H:%M:%S%.9f%:z";
 
 #[derive(Serialize, Deserialize, Clone, Debug, Eq)]
 pub struct LineDifference {
@@ -51,15 +51,15 @@ pub fn find(
     prev_changes: &Vec<LineDifference>,
 ) -> Result<Vec<LineDifference>, Box<dyn std::error::Error>> {
     let prev_changes = &unique_prev_changes(prev_changes);
-    let changed_or_added_lines = find_changed_or_added_lines(path, prev_changes)?;
+    let mut changed_or_added_lines = find_changed_or_added_lines(path, prev_changes)?;
     let line_count = line_count(path)?;
 
     if has_removed_lines(prev_changes, line_count) {
-        return Ok([
+        changed_or_added_lines = [
             changed_or_added_lines,
             find_removed_lines(prev_changes, line_count),
         ]
-        .concat());
+        .concat();
     }
 
     Ok(changed_or_added_lines)
@@ -84,10 +84,10 @@ fn unique_prev_changes(prev_changes: &Vec<LineDifference>) -> Vec<LineDifference
         .collect_vec()
 }
 
-fn sort(date_time_a: &str, date_time_b: &str) -> std::cmp::Ordering {
+pub fn sort(date_time_a: &str, date_time_b: &str) -> std::cmp::Ordering {
     Ord::cmp(
-        &NaiveDateTime::parse_from_str(date_time_a, DATETIME_FORMAT).unwrap(),
-        &NaiveDateTime::parse_from_str(date_time_b, DATETIME_FORMAT).unwrap(),
+        &NaiveDateTime::parse_from_str(date_time_a, RFC3339).unwrap(),
+        &NaiveDateTime::parse_from_str(date_time_b, RFC3339).unwrap(),
     )
 }
 
