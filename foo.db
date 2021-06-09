@@ -1,12 +1,21 @@
 ---
-- CHANGE_MARKER: "---\n1\n"
-- CHANGE_PEEK_STACK:
+- CHANGE_MARKER: "---\n2\n"
+- /home/benni/Coding/Rust/diff_files/orig.txt:
+    - "---\npath: /home/benni/Coding/Rust/diff_files/orig.txt\nline_number: 0\nline: \"\"\nchanged_line: \"sdDsrosten erwartet demnach in einigen Wochen eine Diskussion über die Förderung der Impfbereitschaft. \"\ndate_time: \"2021-06-09T09:40:53.956465330+00:00\"\n"
+    - "---\npath: /home/benni/Coding/Rust/diff_files/orig.txt\nline_number: 1\nline: \"\"\nchanged_line: \"Ziel seien mindestens 80 Prozent Zweifachimpfungen, zumindest in der \\\"impffähigen erwachsenen Bevölkerung\\\", \"\ndate_time: \"2021-06-09T09:40:53.956874899+00:00\"\n"
+    - "---\npath: /home/benni/Coding/Rust/diff_files/orig.txt\nline_number: 2\nline: \"\"\nchanged_line: \"erinsnerte er. Auch nach der Aufhebung der festgelegten Reihenfolge seit Montag bleibe es zunächst \"\ndate_time: \"2021-06-09T09:40:53.957301349+00:00\"\n"
+    - "---\npath: /home/benni/Coding/Rust/diff_files/orig.txt\nline_number: 3\nline: \"\"\nchanged_line: \"noch wichtig, die Gruppen zu impfen, in denen dies wegen des erhöhten Covid-19-Risikos dringlich sei. \"\ndate_time: \"2021-06-09T09:40:53.957777242+00:00\"\n"
+    - "---\npath: /home/benni/Coding/Rust/diff_files/orig.txt\nline_number: 4\nline: \"\"\nchanged_line: \"Da!fds Augenmerk müsse im Moment noch auf der Versorgung der Menschen ab Mitte 40 liegen, sagte Drosten. \"\ndate_time: \"2021-06-09T09:40:53.958277742+00:00\"\n"
+    - "---\npath: /home/benni/Coding/Rust/diff_files/orig.txt\nline_number: 5\nline: \"\"\nchanged_line: sdAktuell liegt der Anteil der vollständig Geimpften in der Bevölkerung bei knapp 22 Prozent.\ndate_time: \"2021-06-09T09:40:53.958835509+00:00\"\n"
+    - "---\npath: /home/benni/Coding/Rust/diff_files/orig.txt\nline_number: 0\nline: \"sdDsrosten erwartet demnach in einigen Wochen eine Diskussion über die Förderung der Impfbereitschaft. \"\nchanged_line: \"vdsdDsrosten erwartet demnach in einigen Wochen eine Diskussion über die Förderung der Impfbereitschaft. \"\ndate_time: \"2021-06-09T09:41:05.376445634+00:00\"\n"
+  CHANGE_PEEK_STACK:
+    - "---\n/home/benni/Coding/Rust/diff_files/foo.txt\n"
     - "---\n/home/benni/Coding/Rust/diff_files/orig.txt\n"
-  /home/benni/Coding/Rust/diff_files/orig.txt:
-    - "---\npath: /home/benni/Coding/Rust/diff_files/orig.txt\nline_number: 0\nline: \"\"\nchanged_line: \"Drosten erwartet demnach in einigen Wochen eine Diskussion über die Förderung der Impfbereitschaft. \"\ndate_time: \"2021-06-09T06:04:12.524819855+00:00\"\n"
-    - "---\npath: /home/benni/Coding/Rust/diff_files/orig.txt\nline_number: 1\nline: \"\"\nchanged_line: \"Ziel seien mindestens 80 Prozent Zweifachimpfungen, zumindest in der \\\"impffähigen erwachsenen Bevölkerung\\\", \"\ndate_time: \"2021-06-09T06:04:12.525356731+00:00\"\n"
-    - "---\npath: /home/benni/Coding/Rust/diff_files/orig.txt\nline_number: 2\nline: \"\"\nchanged_line: \"erinnerte er. Auch nach der Aufhebung der festgelegten Reihenfolge seit Montag bleibe es zunächst \"\ndate_time: \"2021-06-09T06:04:12.525710293+00:00\"\n"
-    - "---\npath: /home/benni/Coding/Rust/diff_files/orig.txt\nline_number: 3\nline: \"\"\nchanged_line: \"noch wichtig, die Gruppen zu impfen, in denen dies wegen des erhöhten Covid-19-Risikos dringlich sei. \"\ndate_time: \"2021-06-09T06:04:12.526093621+00:00\"\n"
-    - "---\npath: /home/benni/Coding/Rust/diff_files/orig.txt\nline_number: 4\nline: \"\"\nchanged_line: \"Da!fds Augenmerk müsse im Moment noch auf der Versorgung der Menschen ab Mitte 40 liegen, sagte Drosten. \"\ndate_time: \"2021-06-09T06:04:12.526484573+00:00\"\n"
-    - "---\npath: /home/benni/Coding/Rust/diff_files/orig.txt\nline_number: 5\nline: \"\"\nchanged_line: sdAktuell liegt der Anteil der vollständig Geimpften in der Bevölkerung bei knapp 22 Prozent.\ndate_time: \"2021-06-09T06:04:12.526993667+00:00\"\n"
-    - "---\npath: /home/benni/Coding/Rust/diff_files/orig.txt\nline_number: 0\nline: \"Drosten erwartet demnach in einigen Wochen eine Diskussion über die Förderung der Impfbereitschaft. \"\nchanged_line: \"Dsrosten erwartet demnach in einigen Wochen eine Diskussion über die Förderung der Impfbereitschaft. \"\ndate_time: \"2021-06-09T06:04:15.150331442+00:00\"\n"
+  /home/benni/Coding/Rust/diff_files/foo.txt:
+    - "---\npath: /home/benni/Coding/Rust/diff_files/foo.txt\nline_number: 0\nline: \"\"\nchanged_line: \"sdDsrosten erwartet demnach in einigen Wochen eine Diskussion über die Förderung der Impfbereitschaft. \"\ndate_time: \"2021-06-09T09:40:53.960019351+00:00\"\n"
+    - "---\npath: /home/benni/Coding/Rust/diff_files/foo.txt\nline_number: 1\nline: \"\"\nchanged_line: \"Ziel seien mindestens 80 Prozent Zweifachimpfungen, zumindest in der \\\"impffähigen erwachsenen Bevölkerung\\\", \"\ndate_time: \"2021-06-09T09:40:53.960734103+00:00\"\n"
+    - "---\npath: /home/benni/Coding/Rust/diff_files/foo.txt\nline_number: 2\nline: \"\"\nchanged_line: \"ferinsnerte er. Auch nach der Aufhebung der festgelegten Reihenfolge seit Montag bleibe es zunächst \"\ndate_time: \"2021-06-09T09:40:53.961388922+00:00\"\n"
+    - "---\npath: /home/benni/Coding/Rust/diff_files/foo.txt\nline_number: 3\nline: \"\"\nchanged_line: \"nvdoch wichtig, die Gruppen zu impfen, in denen dies wegen des erhöhten Covid-19-Risikos dringlich sei. \"\ndate_time: \"2021-06-09T09:40:53.962079448+00:00\"\n"
+    - "---\npath: /home/benni/Coding/Rust/diff_files/foo.txt\nline_number: 4\nline: \"\"\nchanged_line: \"Da!fds Augenmerk müsse im Moment noch auf der Versorgung der Menschen ab Mitte 40 liegen, sagte Drosten. \"\ndate_time: \"2021-06-09T09:40:53.962815320+00:00\"\n"
+    - "---\npath: /home/benni/Coding/Rust/diff_files/foo.txt\nline_number: 5\nline: \"\"\nchanged_line: sdAktuell liegt der Anteil der vollständig Geimpften in der Bevölkerung bei knapp 22 Prozent.\ndate_time: \"2021-06-09T09:40:53.963524982+00:00\"\n"
+    - "---\npath: /home/benni/Coding/Rust/diff_files/foo.txt\nline_number: 0\nline: \"sdDsrosten erwartet demnach in einigen Wochen eine Diskussion über die Förderung der Impfbereitschaft. \"\nchanged_line: \"dsdDsrosten erwartet demnach in einigen Wochen eine Diskussion über die Förderung der Impfbereitschaft. \"\ndate_time: \"2021-06-09T09:40:56.181673113+00:00\"\n"

@@ -4,14 +4,15 @@ pub mod event_handle {
     use std::path::PathBuf;
     use std::process;
     use std::sync::mpsc;
-    use store::store::Store;
     use std::thread;
-    use std::time::{Duration};
+    use std::time::Duration;
+    use store::store::Store;
+    use store::store::Version;
 
     pub struct EventHandle {
         store: Store,
         // type will be replaced soon
-        stack_transmitter: mpsc::Sender<Vec<LineDifference>>,
+        stack_transmitter: mpsc::Sender<Vec<Version>>,
         version_transmitter: mpsc::Sender<Vec<LineDifference>>,
         undo_redo_receiver: mpsc::Receiver<(u8, u8)>,
     }
@@ -19,21 +20,31 @@ pub mod event_handle {
     impl EventHandle {
         pub fn new(
             store: Store,
-            stack_transmitter: mpsc::Sender<Vec<LineDifference>>,
+            stack_transmitter: mpsc::Sender<Vec<Version>>,
             version_transmitter: mpsc::Sender<Vec<LineDifference>>,
-            undo_redo_receiver: mpsc::Receiver<(u8, u8)>
+            undo_redo_receiver: mpsc::Receiver<(u8, u8)>,
         ) -> EventHandle {
             EventHandle {
                 store,
                 stack_transmitter,
                 version_transmitter,
-                undo_redo_receiver
+                undo_redo_receiver,
             }
         }
 
-        pub fn listen_to_undo_redo_command(&'static mut self, rx_undo_redo: mpsc::Receiver<(u8, u8)>) {
+        pub fn send_available_data(&mut self) {
+            let data = self.store.view().unwrap();
+            self.stack_transmitter.send(data).unwrap_or_else(|err| {
+                eprintln!("Could not transmit data to TUI {:?}", err);
+                process::exit(1);
+            });
+        }
+
+        pub fn listen_to_undo_redo_command(
+            &'static mut self, /* , rx_undo_redo: mpsc::Receiver<(u8, u8)> */
+        ) {
             thread::spawn(move || loop {
-                let cmd = rx_undo_redo.recv();
+                let cmd = self.undo_redo_receiver.recv();
                 match cmd {
                     Ok(res) => {
                         // undo
@@ -49,7 +60,6 @@ pub mod event_handle {
                 }
             });
         }
-
 
         pub fn handle(&mut self, event: DebouncedEvent) -> Result<(), Box<dyn std::error::Error>> {
             let path = self.to_path(&event)?;
@@ -102,7 +112,11 @@ pub mod event_handle {
                     process::exit(1);
                 });
             //self.store.store_all_differences(path, &changes)
-
+            let foo = self.store.view();
+            let foo = foo.unwrap();
+            for f in foo {
+                println!("{}", f.name);
+            }
             self.store.store_changes(path, &changes)
         }
 

@@ -3,13 +3,14 @@ mod tui_main;
 mod util;
 use crate::tui_main::{ui, App, AutoStash, Config};
 use diff::LineDifference;
-use std::io;
+// use std::io;
 use std::process;
 use std::sync::mpsc;
-use std::sync::{
-    atomic::{AtomicBool, Ordering},
-    Arc,
-};
+use store::store::Version;
+// use std::sync::{
+//     atomic::{AtomicBool, Ordering},
+//     Arc,
+// };
 use std::thread;
 
 use std::time::{Duration, Instant};
@@ -17,63 +18,6 @@ pub enum Event<I> {
     Input(I),
     Tick,
 }
-
-// extern   crate auto_
-/// type is handled in its own thread and returned to a common `Receiver`
-// pub struct Events {
-//     rx: mpsc::Receiver<Event<Key>>,
-//     ignore_exit_key: Arc<AtomicBool>,
-// }
-
-// impl Events {
-//     pub fn new() -> Events {
-//         Events::with_config()
-//     }
-
-//     pub fn with_config() -> Events {
-//         let (tx, rx) = mpsc::channel();
-//         let ignore_exit_key = Arc::new(AtomicBool::new(false));
-//         {
-//             let tx = tx.clone();
-//             thread::spawn(move || {
-//                 let stdin = io::stdin();
-//                 for evt in stdin.Key() {
-//                     if let Ok(key) = evt {
-//                         if let Err(err) = tx.send(Event::Input(key)) {
-//                             eprintln!("{}", err);
-//                             return;
-//                         }
-//                     }
-//                 }
-//             })
-
-//         };
-//         let _tick_handle = {
-//             thread::spawn(move || loop {
-//                 if tx.send(Event::Tick).is_err() {
-//                     break;
-//                 }
-//                 thread::sleep(Duration::from_millis(500));
-//             })
-//         };
-//         Events {
-//             rx,
-//             ignore_exit_key
-//         }
-//     }
-
-//     pub fn next(&self) -> Result<Event<KeyCode>, mpsc::RecvError> {
-//         self.rx.recv()
-//     }
-
-//     pub fn disable_exit_key(&mut self) {
-//         self.ignore_exit_key.store(true, Ordering::Relaxed);
-//     }
-
-//     pub fn enable_exit_key(&mut self) {
-//         self.ignore_exit_key.store(false, Ordering::Relaxed);
-//     }
-// }
 
 fn string_to_static_str(s: String) -> &'static str {
     Box::leak(s.into_boxed_str())
@@ -92,36 +36,31 @@ use crossterm::{
 };
 
 pub fn run_tui(args: std::env::Args) -> Result<(), Box<dyn Error>> {
-    let (tx, rx1): (
-        mpsc::Sender<Vec<LineDifference>>,
-        mpsc::Receiver<Vec<LineDifference>>,
-    ) = mpsc::channel();
+    let (tx, rx_all_versions): (mpsc::Sender<Vec<Version>>, mpsc::Receiver<Vec<Version>>) =
+        mpsc::channel();
     let (tx1, rx_new_version): (
         mpsc::Sender<Vec<LineDifference>>,
         mpsc::Receiver<Vec<LineDifference>>,
     ) = mpsc::channel();
 
-    let (undo_redo_tx, undo_redo_rx): (
-        mpsc::Sender<(u8, u8)>,
-        mpsc::Receiver<(u8, u8)>,
-    ) = mpsc::channel();
+    let (undo_redo_tx, undo_redo_rx): (mpsc::Sender<(u8, u8)>, mpsc::Receiver<(u8, u8)>) =
+        mpsc::channel();
 
-    
+    // init terminal
     enable_raw_mode()?;
     let mut stdout = stdout();
     execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
-    
-
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
     terminal.clear()?;
 
+    // init main program
     let config = Config::new(args).unwrap();
     let mut auto_stash = AutoStash::new(&config, tx, tx1, undo_redo_rx).unwrap();
     let app = App::new("AutoStash");
-
     let mut app = app.unwrap();
 
+    // run main program
     thread::spawn(move || {
         auto_stash.run().unwrap_or_else(|err| {
             eprintln!("Could not join thread {:?}", err);
@@ -152,14 +91,16 @@ pub fn run_tui(args: std::env::Args) -> Result<(), Box<dyn Error>> {
         }
     });
 
+    let h = rx_all_versions.recv();
+    match h {
+        Ok(res) => {
+            app.title = string_to_static_str(String::from("bar"));
+        }
+        Err(_) => {}
+    }
+
     loop {
         terminal.draw(|f| ui::draw(f, &mut app))?;
-
-        let h = rx.try_recv();
-        match h {
-            Ok(res) => {}
-            Err(_) => {}
-        }
 
         match rx.recv()? {
             Event::Input(event) => match event.code {
@@ -193,10 +134,12 @@ pub fn run_tui(args: std::env::Args) -> Result<(), Box<dyn Error>> {
             }
         }
         if app.should_quit {
-            execute!(terminal.backend_mut(), LeaveAlternateScreen, event::DisableMouseCapture)?;
+            execute!(
+                terminal.backend_mut(),
+                LeaveAlternateScreen,
+                DisableMouseCapture
+            )?;
             terminal.show_cursor()?;
-            // let mut stdout = stdout();
-            // execute!(LeaveAlternateScreen, DisableMouseCapture)?;
             disable_raw_mode()?;
             break;
         }

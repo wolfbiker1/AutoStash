@@ -5,6 +5,7 @@ use filewatch::FileWatch;
 use std::sync::mpsc;
 use std::time::Duration;
 use store::store::Store;
+use store::store::Version;
 use tui::text::Spans;
 
 pub struct LineDifference1<'a> {
@@ -22,8 +23,10 @@ pub struct App<'a> {
     pub should_quit: bool,
     pub tabs: TabsState<'a>,
     pub show_chart: bool,
-    pub versions: StatefulList<&'a str>,
+    pub filenames: StatefulList<&'a str>,
+    pub version_snapshots: StatefulList<&'a str>,
     pub available_versions: Vec<String>,
+    pub pane_ptr: i8,
     pub new_version: Vec<LineDifference>,
     pub processed_diffs: Vec<Spans<'static>>,
     pub servers: Vec<LineDifference1<'a>>,
@@ -36,8 +39,10 @@ impl<'a> App<'a> {
             should_quit: false,
             tabs: TabsState::new(vec!["1h", "24h", "7 Tage"]),
             show_chart: true,
+            version_snapshots: StatefulList::with_items(vec!["foo", "bar"]),
+            filenames: StatefulList::with_items(vec!["quix", "quax"]),
             available_versions: Vec::new(),
-            versions: StatefulList::with_items(Vec::new()),
+            pane_ptr: 1,
             processed_diffs: Vec::new(),
             new_version: Vec::new(),
             servers: vec![LineDifference1 {
@@ -47,11 +52,19 @@ impl<'a> App<'a> {
         })
     }
     pub fn on_up(&mut self) {
-        self.versions.previous();
+        if self.pane_ptr > 0 {
+            self.filenames.previous();
+        } else {
+            self.version_snapshots.previous();
+        }
     }
 
     pub fn on_down(&mut self) {
-        self.versions.next();
+        if self.pane_ptr > 0 {
+            self.filenames.next();
+        } else {
+            self.version_snapshots.next();
+        }
     }
 
     pub fn on_right(&mut self) {
@@ -66,6 +79,9 @@ impl<'a> App<'a> {
         match c {
             'q' => {
                 self.should_quit = true;
+            }
+            's' => {
+                self.pane_ptr *= -1;
             }
             _ => {}
         }
@@ -116,13 +132,16 @@ impl Config {
 impl AutoStash {
     pub fn new(
         config: &Config,
-        stack_sender: mpsc::Sender<Vec<LineDifference>>,
+        stack_sender: mpsc::Sender<Vec<Version>>,
         version_sender: mpsc::Sender<Vec<LineDifference>>,
-        undo_redo_sender: mpsc::Receiver<(u8, u8)>
+        undo_redo_sender: mpsc::Receiver<(u8, u8)>,
     ) -> Result<AutoStash, Box<dyn std::error::Error>> {
         let store = Store::new(config.store_path.as_str(), config.watch_path.as_str())?;
 
-        let event_handle = EventHandle::new(store, stack_sender, version_sender, undo_redo_sender);
+        let mut event_handle =
+            EventHandle::new(store, stack_sender, version_sender, undo_redo_sender);
+        event_handle.send_available_data();
+        //event_handle.listen_to_undo_redo_command();
         let watch = FileWatch::new(config.debounce_time, event_handle)?;
 
         Ok(AutoStash {
