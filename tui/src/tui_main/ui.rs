@@ -119,19 +119,6 @@ where
                 .constraints([Constraint::Percentage(100), Constraint::Percentage(50)].as_ref())
                 .direction(Direction::Horizontal)
                 .split(chunks[0]);
-
-            // Draw tasks
-            // let tasks: Vec<ListItem> = app
-            //     .versions
-            //     .items
-            //     .iter()
-            //     .map(|i| ListItem::new(vec![Spans::from(Span::raw(*i))]))
-            //     .collect();
-            // let tasks = List::new(tasks)
-            //     .block(Block::default().borders(Borders::ALL).title("Snapshot"))
-            //     .highlight_style(Style::default().add_modifier(Modifier::BOLD))
-            //     .highlight_symbol("x ");
-            // f.render_stateful_widget(tasks, chunks[0], &mut app.versions.state);
         }
         let tasks: Vec<ListItem> = app
             .filenames
@@ -143,24 +130,6 @@ where
             .block(Block::default().borders(Borders::ALL).title("Filename"))
             .highlight_style(Style::default().add_modifier(Modifier::BOLD))
             .highlight_symbol("x ");
-        // f.render_stateful_widget(tasks, chunks[0], &mut app.versions.state);
-        //     let barchart = BarChart::default()
-        //         .block(
-        //             Block::default()
-        //                 .borders(Borders::ALL)
-        //                 .title("Noch mehr Statistik"),
-        //         )
-        //         .bar_width(3)
-        //         .bar_gap(2)
-        //         .bar_set(symbols::bar::THREE_LEVELS)
-        //         .value_style(
-        //             Style::default()
-        //                 .fg(Color::Black)
-        //                 .bg(Color::Green)
-        //                 .add_modifier(Modifier::ITALIC),
-        //         )
-        //         .label_style(Style::default().fg(Color::Yellow))
-        //         .bar_style(Style::default().fg(Color::Green));
         f.render_stateful_widget(tasks, chunks[1], &mut app.filenames.state);
     }
     if app.show_chart {

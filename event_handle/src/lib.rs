@@ -111,12 +111,10 @@ pub mod event_handle {
                     eprintln!("Could not transmit data to TUI {:?}", err);
                     process::exit(1);
                 });
-            //self.store.store_all_differences(path, &changes)
-            let foo = self.store.view();
-            let foo = foo.unwrap();
-            for f in foo {
-                println!("{}", f.name);
-            }
+            // //self.store.store_all_differences(path, &changes)
+            // let foo = self.store.view();
+            // let foo = foo.unwrap();
+
             self.store.store_changes(path, &changes)
         }
 

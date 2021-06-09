@@ -91,10 +91,19 @@ pub fn run_tui(args: std::env::Args) -> Result<(), Box<dyn Error>> {
         }
     });
 
+
     let h = rx_all_versions.recv();
     match h {
         Ok(res) => {
-            app.title = string_to_static_str(String::from("bar"));
+            for r in &res {
+                app.filenames.add_item(string_to_static_str(String::from(r.name.clone())));
+                //app.version_snapshots.add_item(string_to_static_str(String::from(r.datetime.to_string().clone())));
+                let diffs = r.changes.clone();
+                for d in diffs {
+                    app.version_snapshots.add_item(string_to_static_str(d.line));
+                }
+            }
+            // app.title = string_to_static_str(String::from("bar"));
         }
         Err(_) => {}
     }
