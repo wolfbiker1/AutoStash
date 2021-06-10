@@ -23,6 +23,7 @@ pub struct App<'a> {
     pub should_quit: bool,
     pub tabs: TabsState<'a>,
     pub show_chart: bool,
+    pub all_versions: Vec<Version>,
     pub filenames: StatefulList<&'a str>,
     pub version_snapshots: StatefulList<&'a str>,
     pub available_versions: Vec<String>,
@@ -31,6 +32,10 @@ pub struct App<'a> {
     pub processed_diffs: Vec<Spans<'static>>,
     pub servers: Vec<LineDifference1<'a>>,
 }
+fn string_to_static_str(s: String) -> &'static str {
+    Box::leak(s.into_boxed_str())
+}
+
 
 impl<'a> App<'a> {
     pub fn new(title: &'a str) -> Result<App<'a>, Box<dyn std::error::Error>> {
@@ -39,12 +44,16 @@ impl<'a> App<'a> {
             should_quit: false,
             tabs: TabsState::new(vec!["1h", "24h", "7 Tage"]),
             show_chart: true,
-            version_snapshots: StatefulList::with_items(vec!["foo", "bar"]),
-            filenames: StatefulList::with_items(vec!["quix", "quax"]),
+            // general datastructs
+            all_versions: Vec::new(), 
+            // datastructs for ui 
+            version_snapshots: StatefulList::with_items(vec![]),
+            filenames: StatefulList::with_items(vec![]),
             available_versions: Vec::new(),
-            pane_ptr: 1,
             processed_diffs: Vec::new(),
             new_version: Vec::new(),
+            // controll
+            pane_ptr: 1,
             servers: vec![LineDifference1 {
                 name: "foo",
                 location: "bar",
@@ -56,6 +65,21 @@ impl<'a> App<'a> {
             self.filenames.previous();
         } else {
             self.version_snapshots.previous();
+        }
+    }
+
+    pub fn on_enter(&mut self) {
+        if self.pane_ptr > 0 {
+            self.version_snapshots.flush_display();
+            let data_for_selected_file = &self.all_versions[self.filenames.get_index()];
+            let diffs = data_for_selected_file.changes.clone();
+                // let diffs = r.changes.clone();
+            for d in diffs {
+                self.version_snapshots.add_item(string_to_static_str(d.line));
+            }
+           // println!("{}", self.filenames.get_index());
+        } else {
+
         }
     }
 
@@ -141,7 +165,7 @@ impl AutoStash {
         let mut event_handle =
             EventHandle::new(store, stack_sender, version_sender, undo_redo_sender);
         event_handle.send_available_data();
-        //event_handle.listen_to_undo_redo_command();
+        // event_handle.listen_to_undo_redo_command();
         let watch = FileWatch::new(config.debounce_time, event_handle)?;
 
         Ok(AutoStash {

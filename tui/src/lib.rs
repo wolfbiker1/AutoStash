@@ -95,13 +95,14 @@ pub fn run_tui(args: std::env::Args) -> Result<(), Box<dyn Error>> {
     let h = rx_all_versions.recv();
     match h {
         Ok(res) => {
-            for r in &res {
+            app.all_versions = res;
+            for r in &app.all_versions {
                 app.filenames.add_item(string_to_static_str(String::from(r.name.clone())));
                 //app.version_snapshots.add_item(string_to_static_str(String::from(r.datetime.to_string().clone())));
-                let diffs = r.changes.clone();
-                for d in diffs {
-                    app.version_snapshots.add_item(string_to_static_str(d.line));
-                }
+                // let diffs = r.changes.clone();
+                // for d in diffs {
+                    // app.version_snapshots.add_item(string_to_static_str(d.line));
+                // }
             }
             // app.title = string_to_static_str(String::from("bar"));
         }
@@ -127,6 +128,9 @@ pub fn run_tui(args: std::env::Args) -> Result<(), Box<dyn Error>> {
                 }
                 KeyCode::Right => {
                     app.on_right();
+                }
+                KeyCode::Enter => {
+                    app.on_enter();
                 }
                 _ => {}
             },

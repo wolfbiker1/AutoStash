@@ -71,8 +71,20 @@ impl<T> StatefulList<T> {
         }
     }
 
+    pub fn flush_display(&mut self) {
+        self.items.clear();
+    }
+
     pub fn add_item(&mut self, item: T) {
         self.items.push(item);
+    }
+
+    pub fn get_index(&mut self) -> usize {
+        let i = match self.state.selected() {
+            Some(i) => i,
+            None => 0,
+        };
+        i
     }
 
     pub fn next(&mut self) {
