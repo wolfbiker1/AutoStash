@@ -93,10 +93,12 @@ impl<'a> App<'a> {
 
     pub fn on_right(&mut self) {
         self.tabs.next();
+        // todo: change timeslice
     }
 
     pub fn on_left(&mut self) {
         self.tabs.previous();
+        // todo: change timeslice
     }
 
     pub fn on_key(&mut self, c: char) {

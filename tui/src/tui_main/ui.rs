@@ -28,12 +28,13 @@ pub fn draw<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .highlight_style(Style::default().fg(Color::Yellow))
         .select(app.tabs.index);
     f.render_widget(tabs, chunks[0]);
-    match app.tabs.index {
-        0 => draw_first_tab(f, app, chunks[1]),
-        1 => draw_second_tab(f, app, chunks[1]),
-        2 => draw_third_tab(f, app, chunks[1]),
-        _ => {}
-    };
+    // match app.tabs.index {
+    //     0 => draw_first_tab(f, app, chunks[1]),
+    //     1 => draw_second_tab(f, app, chunks[1]),
+    //     2 => draw_third_tab(f, app, chunks[1]),
+    //     _ => {}
+    // };
+    draw_first_tab(f, app, chunks[1])
 }
 
 fn draw_first_tab<B>(f: &mut Frame<B>, app: &mut App, area: Rect)
@@ -52,7 +53,6 @@ where
         .split(area);
     draw_gauges(f, app, chunks[0]);
     draw_charts(f, app, chunks[1]);
-    draw_text(f, chunks[2]);
 }
 
 fn draw_gauges<B>(f: &mut Frame<B>, app: &mut App, area: Rect)
@@ -176,82 +176,4 @@ where
             );
         f.render_widget(chart, chunks[1]);
     }
-}
-
-fn draw_text<B>(f: &mut Frame<B>, area: Rect)
-where
-    B: Backend,
-{
-    let text = vec![
-        Spans::from(""),
-        Spans::from(""),
-        Spans::from(vec![
-            Span::from(""),
-            Span::styled("", Style::default().fg(Color::Red)),
-        ]),
-        Spans::from(vec![
-            Span::raw(""),
-            Span::styled("", Style::default().add_modifier(Modifier::ITALIC)),
-        ]),
-    ];
-}
-
-fn draw_second_tab<B>(f: &mut Frame<B>, app: &mut App, area: Rect)
-where
-    B: Backend,
-{
-    let chunks = Layout::default()
-        .constraints([Constraint::Percentage(30), Constraint::Percentage(70)].as_ref())
-        .direction(Direction::Horizontal)
-        .split(area);
-    let up_style = Style::default().fg(Color::Green);
-
-    let rows = app.servers.iter().map(|s| {
-        let style = up_style;
-        Row::new(vec![s.name, s.location]).style(style)
-    });
-    let table = Table::new(rows)
-        .header(
-            Row::new(vec!["Filename", "Date of Change"])
-                .style(Style::default().fg(Color::Yellow))
-                .bottom_margin(1),
-        )
-        .block(Block::default().title("Versions").borders(Borders::ALL))
-        .widths(&[
-            Constraint::Length(15),
-            Constraint::Length(15),
-            Constraint::Length(10),
-        ]);
-    f.render_widget(table, chunks[0]);
-    let block = Block::default().borders(Borders::ALL).title("Differences");
-    f.render_widget(block, chunks[1]);
-}
-
-fn draw_third_tab<B>(f: &mut Frame<B>, app: &mut App, area: Rect)
-where
-    B: Backend,
-{
-    let chunks = Layout::default()
-        .constraints([Constraint::Percentage(30), Constraint::Percentage(70)].as_ref())
-        .direction(Direction::Horizontal)
-        .split(area);
-    let rows = app
-        .servers
-        .iter()
-        .map(|s| Row::new(vec![s.name, s.location]).style(Style::default().fg(Color::Green)));
-    let table = Table::new(rows)
-        .header(
-            Row::new(vec!["Server", "Location", "Status"])
-                .style(Style::default().fg(Color::Yellow))
-                .bottom_margin(1),
-        )
-        .block(Block::default().title("Servers").borders(Borders::ALL))
-        .widths(&[
-            Constraint::Length(15),
-            Constraint::Length(15),
-            Constraint::Length(10),
-        ]);
-    f.render_widget(table, chunks[0]);
-    let block = Block::default().borders(Borders::ALL).title("Differences");
-    f.render_widget(block, chunks[1]);
 }
