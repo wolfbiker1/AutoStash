@@ -1,15 +1,14 @@
 use diff::LineDifference;
 use tui::style::{Color, Modifier, Style};
 use tui::text::{Span, Spans};
-
 use tui::widgets::ListState;
-pub struct TabsState<'a> {
-    pub titles: Vec<&'a str>,
+pub struct TabsState {
+    pub titles: Vec<String>,
     pub index: usize,
 }
 
-impl<'a> TabsState<'a> {
-    pub fn new(titles: Vec<&'a str>) -> TabsState {
+impl TabsState {
+    pub fn new(titles: Vec<String>) -> TabsState {
         TabsState { titles, index: 0 }
     }
     pub fn next(&mut self) {

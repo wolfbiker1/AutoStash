@@ -5,59 +5,51 @@ pub mod event_handle {
     use std::process;
     use std::sync::mpsc;
     use std::thread;
-    use std::time::Duration;
     use store::store::Store;
     use store::store::Version;
 
     pub struct EventHandle {
         store: Store,
-        // type will be replaced soon
-        stack_transmitter: mpsc::Sender<Vec<Version>>,
-        version_transmitter: mpsc::Sender<Vec<LineDifference>>,
-        undo_redo_receiver: mpsc::Receiver<(u8, u8)>,
+        communication: EventHandleCommunication,
+    }
+
+    pub struct EventHandleCommunication {
+        pub versions_to_ui: mpsc::Sender<Vec<Version>>,
+        pub lines_to_ui: mpsc::Sender<Vec<LineDifference>>,
+        pub on_undo: mpsc::Receiver<usize>,
+        pub on_redo: mpsc::Receiver<usize>,
     }
 
     impl EventHandle {
-        pub fn new(
-            store: Store,
-            stack_transmitter: mpsc::Sender<Vec<Version>>,
-            version_transmitter: mpsc::Sender<Vec<LineDifference>>,
-            undo_redo_receiver: mpsc::Receiver<(u8, u8)>,
-        ) -> EventHandle {
+        pub fn new(store: Store, communication: EventHandleCommunication) -> EventHandle {
             EventHandle {
                 store,
-                stack_transmitter,
-                version_transmitter,
-                undo_redo_receiver,
+                communication,
             }
         }
 
         pub fn send_available_data(&mut self) {
             let data = self.store.view().unwrap();
-            self.stack_transmitter.send(data).unwrap_or_else(|err| {
-                eprintln!("Could not transmit data to TUI {:?}", err);
-                process::exit(1);
+            self.communication
+                .versions_to_ui
+                .send(data)
+                .unwrap_or_else(|err| {
+                    eprintln!("Could not transmit data to TUI {:?}", err);
+                    process::exit(1);
+                });
+        }
+
+        pub fn on_undo(&'static mut self) {
+            thread::spawn(move || loop {
+                let count = self.communication.on_undo.recv().unwrap();
+                &self.store.undo_by(count);
             });
         }
 
-        pub fn listen_to_undo_redo_command(
-            &'static mut self, /* , rx_undo_redo: mpsc::Receiver<(u8, u8)> */
-        ) {
+        pub fn on_redo(&'static mut self) {
             thread::spawn(move || loop {
-                let cmd = self.undo_redo_receiver.recv();
-                match cmd {
-                    Ok(res) => {
-                        // undo
-                        if res.0 == 0 {
-                            &self.store.undo_by(res.1 as usize);
-                        } else {
-                            &self.store.redo_by(res.1 as usize);
-                        }
-                    }
-                    Err(_) => {
-                        eprintln!("Event was not catched");
-                    }
-                }
+                let count = self.communication.on_redo.recv().unwrap();
+                &self.store.redo_by(count);
             });
         }
 
@@ -105,7 +97,8 @@ pub mod event_handle {
 
             let changes = self.store.get_changes::<LineDifference>(path);
             let changes = diff::find(path, &changes)?;
-            self.version_transmitter
+            self.communication
+                .lines_to_ui
                 .send(changes.clone())
                 .unwrap_or_else(|err| {
                     eprintln!("Could not transmit data to TUI {:?}", err);

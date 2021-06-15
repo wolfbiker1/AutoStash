@@ -7,7 +7,6 @@ pub mod store {
     use itertools::Itertools;
     use pickledb::{PickleDb, PickleDbDumpPolicy, SerializationMethod};
     use serde::de::DeserializeOwned;
-    use simple_error::SimpleError;
     use std::error;
     use std::fs::File;
     use std::io::Write;
@@ -21,6 +20,7 @@ pub mod store {
         pub time_slot: TimeSlot,
     }
 
+    #[derive(Clone)]
     pub struct Version {
         pub name: String,
         pub datetime: NaiveDateTime,
