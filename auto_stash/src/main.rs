@@ -1,21 +1,17 @@
-use std::{env, process, sync::mpsc, thread};
+use std::{env, process, thread};
 
 use auto_stash::{AutoStash, Config};
-use diff::LineDifference;
 use event_handle::event_handle::EventHandleCommunication;
-use store::store::Version;
+use flume::{unbounded};
 use ui::ui::{UICommunication, UI};
 
 fn main() {
-    let (versions_to_ui, on_versions): (mpsc::Sender<Vec<Version>>, mpsc::Receiver<Vec<Version>>) =
-        mpsc::channel();
-    let (lines_to_ui, on_lines): (
-        mpsc::Sender<Vec<LineDifference>>,
-        mpsc::Receiver<Vec<LineDifference>>,
-    ) = mpsc::channel();
-    let (undo_to_handle, on_undo): (mpsc::Sender<usize>, mpsc::Receiver<usize>) = mpsc::channel();
-    let (redo_to_handle, on_redo): (mpsc::Sender<usize>, mpsc::Receiver<usize>) = mpsc::channel();
-    let (key_to_ui, on_key) = mpsc::channel();
+    let (versions_to_ui, on_versions) = unbounded();
+    let (lines_to_ui, on_lines) =
+        unbounded();
+    let (undo_to_handle, on_undo) = unbounded();
+    let (redo_to_handle, on_redo) = unbounded();
+    let (key_to_ui, on_key) = unbounded();
 
     let ui = UI::new(
         "".to_string(),

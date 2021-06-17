@@ -3,10 +3,10 @@ pub mod event_handle {
     use notify::DebouncedEvent;
     use std::path::PathBuf;
     use std::process;
-    use std::sync::mpsc;
     use std::thread;
     use store::store::Store;
     use store::store::Version;
+    use flume::{Receiver, Sender};
 
     pub struct EventHandle {
         store: Store,
@@ -14,10 +14,10 @@ pub mod event_handle {
     }
 
     pub struct EventHandleCommunication {
-        pub versions_to_ui: mpsc::Sender<Vec<Version>>,
-        pub lines_to_ui: mpsc::Sender<Vec<LineDifference>>,
-        pub on_undo: mpsc::Receiver<usize>,
-        pub on_redo: mpsc::Receiver<usize>,
+        pub versions_to_ui: Sender<Vec<Version>>,
+        pub lines_to_ui: Sender<Vec<LineDifference>>,
+        pub on_undo: Receiver<usize>,
+        pub on_redo: Receiver<usize>,
     }
 
     impl EventHandle {

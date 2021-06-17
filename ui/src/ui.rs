@@ -2,17 +2,17 @@ use crate::Event;
 use crate::util::{StatefulList, TabsState};
 use crossterm::event::KeyEvent;
 use diff::LineDifference;
-use std::sync::mpsc;
 use store::store::Version;
 use tui::text::Spans;
+use flume::{Receiver, Sender};
 
 pub struct UICommunication {
-    pub on_lines: mpsc::Receiver<Vec<LineDifference>>,
-    pub on_versions: mpsc::Receiver<Vec<Version>>,
-    pub undo_to_handle: mpsc::Sender<usize>,
-    pub redo_to_handle: mpsc::Sender<usize>,
-    pub on_key:  mpsc::Receiver<Event<KeyEvent>>,
-    pub key_to_ui:  mpsc::Sender<Event<KeyEvent>>,
+    pub on_lines: Receiver<Vec<LineDifference>>,
+    pub on_versions: Receiver<Vec<Version>>,
+    pub undo_to_handle: Sender<usize>,
+    pub redo_to_handle: Sender<usize>,
+    pub on_key:  Receiver<Event<KeyEvent>>,
+    pub key_to_ui:  Sender<Event<KeyEvent>>,
 }
 
 pub struct UIConfig {

@@ -11,6 +11,9 @@ tui = { version = "0.15", features = ["crossterm"], default-features = false }
 argh = "0.1"
 rand = "0.8"
 crossterm = "0.19"
+flume = "0.10.7"
+parking_lot = "0.7.1"
+
 store = { path = "../store" }
 diff = { path = "../diff" }
 event_handle = { path = "../event_handle" }
