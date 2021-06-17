@@ -1,9 +1,9 @@
 pub mod ui;
 mod util;
 mod widgets;
-use std::sync::Arc;
+use parking_lot::{Mutex, MutexGuard};
+use std::{io::Stdout, sync::Arc};
 use ui::UI;
-use parking_lot::Mutex;
 
 use std::{
     thread,
@@ -23,8 +23,7 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 
-pub fn run(ui: UI) -> Result<(), Box<dyn Error>> {
-    // init terminal
+fn init_terminal() -> Result<Terminal<CrosstermBackend<Stdout>>, Box<dyn Error>> {
     enable_raw_mode()?;
     let mut stdout = stdout();
     execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
@@ -32,18 +31,15 @@ pub fn run(ui: UI) -> Result<(), Box<dyn Error>> {
     let mut terminal = Terminal::new(backend)?;
     terminal.clear()?;
 
-    // Setup input handling
-    let tick_rate = Duration::from_millis(300);
+    Ok(terminal)
+}
 
-    let ui = Arc::new(Mutex::new(ui));
-    let ui_cloned = ui.clone();
-
-    
+fn listen_to_key_press(ui: Arc<Mutex<UI>>, tick_rate: Duration) {
     thread::spawn(move || {
         let mut last_tick = Instant::now();
-        
+
         loop {
-            let ui = ui_cloned.lock();
+            let ui = ui.lock();
             // poll for tick rate duration, if no events, sent tick event.
             let timeout = tick_rate
                 .checked_sub(last_tick.elapsed())
@@ -59,12 +55,11 @@ pub fn run(ui: UI) -> Result<(), Box<dyn Error>> {
             }
         }
     });
-    
+}
 
-    let ui_cloned = ui.clone();
-
+fn on_versions(ui: Arc<Mutex<UI>>) {
     thread::spawn(move || {
-        let mut ui = ui_cloned.lock();
+        let mut ui = ui.lock();
         println!("reached here");
         loop {
             match ui.communication.on_versions.recv() {
@@ -90,64 +85,85 @@ pub fn run(ui: UI) -> Result<(), Box<dyn Error>> {
             }
         }
     });
+}
 
-    
-    let ui = ui.clone();
-    
+fn draw(
+    ui: Arc<Mutex<UI>>,
+    mut terminal: Terminal<CrosstermBackend<Stdout>>,
+) -> Result<(), Box<dyn Error>> {
     loop {
-        let mut ui = ui.lock();
-        terminal.draw(|f| ui.draw(f))?;
+        let ui_cloned = ui.clone();
+        let mut ui_locked = ui_cloned.lock();
+        terminal.draw(|f| ui_locked.draw(f))?;
 
-        if let Ok(on_key) = ui.communication.on_key.try_recv() {
-            match on_key {
-                Event::Input(event) => match event.code {
-                    KeyCode::Char(c) => {
-                        ui.on_key(c);
-                    }
-                    KeyCode::Up => {
-                        ui.on_up();
-                    }
-                    KeyCode::Down => {
-                        ui.on_down();
-                    }
-                    KeyCode::Left => {
-                        ui.on_left();
-                    }
-                    KeyCode::Right => {
-                        ui.on_right();
-                    }
-                    KeyCode::Enter => {
-                        ui.on_enter();
-                    }
-                    _ => {}
-                },
-                Event::Tick => {
-                    let h1 = ui.communication.on_lines.try_recv();
-                    match h1 {
-                        Ok(res) => {
-                            // todo: value must depend on selected file + timewindow!
-                            ui.state.processed_diffs = util::process_new_version(res);
-                        }
-                        Err(_) => {}
-                    }
-                    // ui.on_tick();
-                }
-            }
-        }
+        on_key(ui_locked);
 
-        
-        if ui.config.should_quit {
-            execute!(
-                terminal.backend_mut(),
-                LeaveAlternateScreen,
-                DisableMouseCapture
-            )?;
-            terminal.show_cursor()?;
-            disable_raw_mode()?;
+        if ui.lock().config.should_quit {
+            quit(terminal)?;
             break;
         }
     }
-    
 
     Ok(())
+}
+
+fn on_key(mut ui: MutexGuard<UI>) {
+    if let Ok(on_key) = ui.communication.on_key.try_recv() {
+        match on_key {
+            Event::Input(event) => match event.code {
+                KeyCode::Char(c) => {
+                    ui.on_key(c);
+                }
+                KeyCode::Up => {
+                    ui.on_up();
+                }
+                KeyCode::Down => {
+                    ui.on_down();
+                }
+                KeyCode::Left => {
+                    ui.on_left();
+                }
+                KeyCode::Right => {
+                    ui.on_right();
+                }
+                KeyCode::Enter => {
+                    ui.on_enter();
+                }
+                _ => {}
+            },
+            Event::Tick => {
+                let h1 = ui.communication.on_lines.try_recv();
+                match h1 {
+                    Ok(res) => {
+                        // todo: value must depend on selected file + timewindow!
+                        ui.state.processed_diffs = util::process_new_version(res);
+                    }
+                    Err(_) => {}
+                }
+                // ui.on_tick();
+            }
+        }
+    }
+}
+
+fn quit(mut terminal: Terminal<CrosstermBackend<Stdout>>) -> Result<(), Box<dyn Error>> {
+    execute!(
+        terminal.backend_mut(),
+        LeaveAlternateScreen,
+        DisableMouseCapture
+    )?;
+    terminal.show_cursor()?;
+    disable_raw_mode()?;
+
+    Ok(())
+}
+
+pub fn run(ui: UI) -> Result<(), Box<dyn Error>> {
+    let terminal = init_terminal()?;
+    let tick_rate = Duration::from_millis(300);
+    let ui = Arc::new(Mutex::new(ui));
+
+    listen_to_key_press(ui.clone(), tick_rate);
+    on_versions(ui.clone());
+    draw(ui.clone(), terminal)
 }
