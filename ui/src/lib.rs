@@ -60,7 +60,6 @@ fn listen_to_key_press(ui: Arc<Mutex<UI>>, tick_rate: Duration) {
 fn on_versions(ui: Arc<Mutex<UI>>) {
     thread::spawn(move || {
         let mut ui = ui.lock();
-        println!("reached here");
         loop {
             match ui.communication.on_versions.recv() {
                 Ok(res) => {
@@ -70,7 +69,7 @@ fn on_versions(ui: Arc<Mutex<UI>>) {
                     let versions = &mut state.all_versions;
                     let filenames = &mut state.filenames;
                     versions.iter().for_each(|v| {
-                        filenames.add_item(String::from(v.name.clone()));
+                        filenames.add_item(v.name.clone());
                         //ui.version_snapshots.add_item(string_to_static_str(String::from(r.datetime.to_string().clone())));
                         // let diffs = r.changes.clone();
                         // for d in diffs {
@@ -95,7 +94,6 @@ fn draw(
         let ui_cloned = ui.clone();
         let mut ui_locked = ui_cloned.lock();
         terminal.draw(|f| ui_locked.draw(f))?;
-
         on_key(ui_locked);
 
         if ui.lock().config.should_quit {
@@ -133,14 +131,10 @@ fn on_key(mut ui: MutexGuard<UI>) {
             },
             Event::Tick => {
                 let h1 = ui.communication.on_lines.try_recv();
-                match h1 {
-                    Ok(res) => {
-                        // todo: value must depend on selected file + timewindow!
-                        ui.state.processed_diffs = util::process_new_version(res);
-                    }
-                    Err(_) => {}
+                if let Ok(res) = h1 {
+                    // todo: value must depend on selected file + timewindow!
+                    ui.state.processed_diffs = util::process_new_version(res);
                 }
-                // ui.on_tick();
             }
         }
     }
@@ -165,5 +159,5 @@ pub fn run(ui: UI) -> Result<(), Box<dyn Error>> {
 
     listen_to_key_press(ui.clone(), tick_rate);
     on_versions(ui.clone());
-    draw(ui.clone(), terminal)
+    draw(ui, terminal)
 }

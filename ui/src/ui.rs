@@ -1,18 +1,18 @@
-use crate::Event;
 use crate::util::{StatefulList, TabsState};
+use crate::Event;
 use crossterm::event::KeyEvent;
 use diff::LineDifference;
+use flume::{Receiver, Sender};
 use store::store::Version;
 use tui::text::Spans;
-use flume::{Receiver, Sender};
 
 pub struct UICommunication {
     pub on_lines: Receiver<Vec<LineDifference>>,
     pub on_versions: Receiver<Vec<Version>>,
     pub undo_to_handle: Sender<usize>,
     pub redo_to_handle: Sender<usize>,
-    pub on_key:  Receiver<Event<KeyEvent>>,
-    pub key_to_ui:  Sender<Event<KeyEvent>>,
+    pub on_key: Receiver<Event<KeyEvent>>,
+    pub key_to_ui: Sender<Event<KeyEvent>>,
 }
 
 pub struct UIConfig {
@@ -47,7 +47,11 @@ impl UI {
                 show_chart: true,
             },
             state: UIState {
-                tabs: TabsState::new(vec!["1h".to_string(), "24h".to_string(), "7 Tage".to_string()]),
+                tabs: TabsState::new(vec![
+                    "1h".to_string(),
+                    "24h".to_string(),
+                    "7 Tage".to_string(),
+                ]),
                 all_versions: Vec::new(),
                 lines: StatefulList::with_items(vec![]),
                 filenames: StatefulList::with_items(vec![]),
@@ -74,8 +78,7 @@ impl UI {
             let diffs = data_for_selected_file.changes.clone();
             // let diffs = r.changes.clone();
             for d in diffs {
-                self.state.lines
-                    .add_item(d.line);
+                self.state.lines.add_item(d.line);
             }
             // println!("{}", self.filenames.get_index());
         } else {

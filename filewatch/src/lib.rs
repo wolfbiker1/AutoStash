@@ -26,10 +26,7 @@ impl FileWatch {
         self.watch(dir)?;
 
         loop {
-            match self.listen() {
-                Err(e) => eprintln!("{:?}", e),
-                _ => (),
-            }
+            if let Err(e) = self.listen() { eprintln!("{:?}", e) }
         }
     }
 

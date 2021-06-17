@@ -1,12 +1,12 @@
 pub mod event_handle {
     use diff::LineDifference;
+    use flume::{Receiver, Sender};
     use notify::DebouncedEvent;
     use std::path::PathBuf;
     use std::process;
     use std::thread;
     use store::store::Store;
     use store::store::Version;
-    use flume::{Receiver, Sender};
 
     pub struct EventHandle {
         store: Store,

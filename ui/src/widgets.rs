@@ -1,4 +1,5 @@
 pub mod widgets {
+    use crate::ui::UI;
     use tui::{
         backend::Backend,
         layout::{Constraint, Direction, Layout, Rect},
@@ -8,7 +9,6 @@ pub mod widgets {
         widgets::{Axis, Block, Borders, Chart, Dataset, List, ListItem, Paragraph, Tabs, Wrap},
         Frame,
     };
-    use crate::ui::UI;
     impl UI {
         pub fn draw<B: Backend>(&mut self, f: &mut Frame<B>) {
             let chunks = Layout::default()
@@ -61,7 +61,7 @@ pub mod widgets {
         where
             B: Backend,
         {
-            let chunks = Layout::default()
+            Layout::default()
                 .constraints(
                     [
                         Constraint::Length(2),
@@ -124,7 +124,7 @@ pub mod widgets {
                 }
 
                 {
-                    let chunks = Layout::default()
+                    Layout::default()
                         .constraints(
                             [Constraint::Percentage(100), Constraint::Percentage(50)].as_ref(),
                         )

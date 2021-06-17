@@ -1,5 +1,5 @@
 use diff::LineDifference;
-use tui::style::{Color, Modifier, Style};
+use tui::style::{Color, Style};
 use tui::text::{Span, Spans};
 use tui::widgets::ListState;
 pub struct TabsState {
@@ -55,6 +55,12 @@ pub struct StatefulList<T> {
     pub items: Vec<T>,
 }
 
+impl<T> Default for StatefulList<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T> StatefulList<T> {
     pub fn new() -> StatefulList<T> {
         StatefulList {
@@ -79,11 +85,7 @@ impl<T> StatefulList<T> {
     }
 
     pub fn get_index(&mut self) -> usize {
-        let i = match self.state.selected() {
-            Some(i) => i,
-            None => 0,
-        };
-        i
+        self.state.selected().unwrap_or(0)
     }
 
     pub fn next(&mut self) {
