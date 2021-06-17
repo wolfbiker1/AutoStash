@@ -3,7 +3,7 @@ mod util;
 mod widgets;
 use std::sync::Arc;
 use ui::UI;
-use parking_lot::{Mutex, MutexGuard};
+use parking_lot::Mutex;
 
 use std::{
     thread,
@@ -38,11 +38,12 @@ pub fn run(ui: UI) -> Result<(), Box<dyn Error>> {
     let ui = Arc::new(Mutex::new(ui));
     let ui_cloned = ui.clone();
 
-    /*
+    
     thread::spawn(move || {
         let mut last_tick = Instant::now();
-        let ui = ui_cloned.lock().unwrap();
+        
         loop {
+            let ui = ui_cloned.lock();
             // poll for tick rate duration, if no events, sent tick event.
             let timeout = tick_rate
                 .checked_sub(last_tick.elapsed())
@@ -58,7 +59,7 @@ pub fn run(ui: UI) -> Result<(), Box<dyn Error>> {
             }
         }
     });
-    */
+    
 
     let ui_cloned = ui.clone();
 
@@ -145,8 +146,6 @@ pub fn run(ui: UI) -> Result<(), Box<dyn Error>> {
             disable_raw_mode()?;
             break;
         }
-
-        MutexGuard::unlock_fair(ui);
     }
     
 
