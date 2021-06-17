@@ -2,16 +2,15 @@ use std::{env, process, thread};
 
 use auto_stash::{AutoStash, Config};
 use event_handle::event_handle::EventHandleCommunication;
-use flume::{unbounded};
+use flume::bounded;
 use ui::ui::{UICommunication, UI};
 
 fn main() {
-    let (versions_to_ui, on_versions) = unbounded();
-    let (lines_to_ui, on_lines) =
-        unbounded();
-    let (undo_to_handle, on_undo) = unbounded();
-    let (redo_to_handle, on_redo) = unbounded();
-    let (key_to_ui, on_key) = unbounded();
+    let (versions_to_ui, on_versions) = bounded(1);
+    let (lines_to_ui, on_lines) = bounded(1);
+    let (undo_to_handle, on_undo) = bounded(1);
+    let (redo_to_handle, on_redo) = bounded(1);
+    let (key_to_ui, on_key) = bounded(1);
 
     let ui = UI::new(
         "".to_string(),
