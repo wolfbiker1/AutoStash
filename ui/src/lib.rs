@@ -158,15 +158,16 @@ fn on_key(ui: Arc<Mutex<UI>>) -> JoinHandle<()> {
                             _ => {}
                         },
                         Event::Tick => {
-                            let h1 = ui.communication.on_lines.try_recv();
-                            if let Ok(res) = h1 {
-                                // todo: value must depend on selected file + timewindow!
-                                ui.state.processed_diffs = util::process_new_version(res);
-                            }
                         }
                     }
                 }
                 Err(_) => (),
+            }
+            match ui.communication.on_lines.try_recv() {
+                Ok(notify) => {
+                    ui.state.processed_diffs = util::process_new_version(notify);
+                }
+                Err(_) => ()
             }
             if let Ok(_) = ui.communication.on_quit.try_recv() {
                 break;
