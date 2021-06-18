@@ -30,16 +30,10 @@ pub mod widgets {
                 .highlight_style(Style::default().fg(Color::Yellow))
                 .select(self.state.tabs.index);
             f.render_widget(tabs, chunks[0]);
-            // match self.tabs.index {
-            //     0 => draw_first_tab(f, self, chunks[1]),
-            //     1 => draw_second_tab(f, self, chunks[1]),
-            //     2 => draw_third_tab(f, self, chunks[1]),
-            //     _ => {}
-            // };
-            self.draw_first_tab(f, chunks[1])
+            self.draw_tab(f, chunks[1])
         }
 
-        fn draw_first_tab<B>(&mut self, f: &mut Frame<B>, area: Rect)
+        fn draw_tab<B>(&mut self, f: &mut Frame<B>, area: Rect)
         where
             B: Backend,
         {
@@ -49,15 +43,17 @@ pub mod widgets {
                         Constraint::Length(9),
                         Constraint::Min(8),
                         Constraint::Length(7),
+                        Constraint::Percentage(1),
                     ]
                     .as_ref(),
                 )
                 .split(area);
-            self.draw_gauges(f, chunks[0]);
+            self.draw_difference_block(f, chunks[0]);
             self.draw_charts(f, chunks[1]);
+            self.draw_legend(f, chunks[2]);
         }
 
-        fn draw_gauges<B>(&self, f: &mut Frame<B>, area: Rect)
+        fn draw_difference_block<B>(&self, f: &mut Frame<B>, area: Rect)
         where
             B: Backend,
         {
@@ -74,7 +70,67 @@ pub mod widgets {
                 .split(area);
             let block = Block::default().borders(Borders::ALL).title("Differences");
             let text: Vec<Spans> = self.state.processed_diffs.clone();
-            // let text: Vec<Spans>  = Vec::new();
+            let paragraph = Paragraph::new(text).block(block).wrap(Wrap { trim: true });
+            f.render_widget(paragraph, area);
+        }
+
+        fn draw_legend<B>(&self, f: &mut Frame<B>, area: Rect)
+        where
+            B: Backend,
+        {
+            Layout::default()
+                .constraints(
+                    [
+                        Constraint::Length(1),
+                        Constraint::Length(1),
+                        Constraint::Length(1),
+                    ]
+                    .as_ref(),
+                )
+                .margin(1)
+                .split(area);
+
+            let redo = Spans::from(vec![
+                Span::from("PageUp: "),
+                Span::styled("Redo", Style::default().add_modifier(Modifier::BOLD)),
+            ]);
+
+            let undo_redo = Spans::from(vec![
+                Span::from("PageDown: "),
+                Span::styled("Undo", Style::default().add_modifier(Modifier::BOLD)),
+                Span::from(" | "),
+                Span::from("PageUp: "),
+                Span::styled("Redo", Style::default().add_modifier(Modifier::BOLD)),
+            ]);
+            let modifier = Spans::from(vec![
+                Span::from("s: "),
+                Span::styled("modifier", Style::default().add_modifier(Modifier::BOLD)),
+            ]);
+            let arrow_up_down = Spans::from(vec![
+                Span::from("modifier, then arrow_up: "),
+                Span::styled("Select Snapshot Pane", Style::default().add_modifier(Modifier::BOLD)),
+                Span::from(" | "),
+                Span::from("modifier, then arrow_down: "),
+                Span::styled("Select Filename Pane", Style::default().add_modifier(Modifier::BOLD)),
+            ]);
+            let arrow_left_right = Spans::from(vec![
+                Span::from("arrow_left: "),
+                Span::styled("Decrease Timeslice", Style::default().add_modifier(Modifier::BOLD)),
+                Span::from(" | "),
+                Span::from("arrow_right: "),
+                Span::styled("Increase Timeslice", Style::default().add_modifier(Modifier::BOLD)),
+            ]);
+            let quit = Spans::from(vec![
+                Span::from("q: "),
+                Span::styled("Quit", Style::default().add_modifier(Modifier::BOLD)),
+            ]);
+            let block = Block::default().borders(Borders::ALL).title("Shortcuts");
+            let mut text: Vec<Spans> = Vec::new();
+            text.push(quit);
+            text.push(modifier);
+            text.push(undo_redo);
+            text.push(arrow_left_right);
+            text.push(arrow_up_down);
             let paragraph = Paragraph::new(text).block(block).wrap(Wrap { trim: true });
             f.render_widget(paragraph, area);
         }

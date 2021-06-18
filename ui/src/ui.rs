@@ -15,7 +15,7 @@ pub struct UICommunication {
     pub redo_to_handle: Sender<usize>,
     pub key_to_ui: Sender<Event<KeyEvent>>,
     pub quit_to_ui: Sender<()>,
-    pub quit_to_handle: Sender<()>
+    pub quit_to_handle: Sender<()>,
 }
 
 impl UICommunication {

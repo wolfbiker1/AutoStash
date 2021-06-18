@@ -49,7 +49,7 @@ impl FileWatch {
 
     fn listen(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         if let Ok(event) = self.on_event.try_recv() {
-            return self.handle(event)
+            return self.handle(event);
         }
         Ok(())
     }
