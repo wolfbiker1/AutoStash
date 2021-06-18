@@ -48,12 +48,12 @@ pub mod widgets {
                     .as_ref(),
                 )
                 .split(area);
-            self.draw_difference_block(f, chunks[0]);
-            self.draw_charts(f, chunks[1]);
-            self.draw_legend(f, chunks[2]);
+            self.draw_difference_pane(f, chunks[0]);
+            self.draw_snapshot_pane(f, chunks[1]);
+            self.draw_legend_pane(f, chunks[2]);
         }
 
-        fn draw_difference_block<B>(&self, f: &mut Frame<B>, area: Rect)
+        fn draw_difference_pane<B>(&self, f: &mut Frame<B>, area: Rect)
         where
             B: Backend,
         {
@@ -74,7 +74,7 @@ pub mod widgets {
             f.render_widget(paragraph, area);
         }
 
-        fn draw_legend<B>(&self, f: &mut Frame<B>, area: Rect)
+        fn draw_legend_pane<B>(&self, f: &mut Frame<B>, area: Rect)
         where
             B: Backend,
         {
@@ -89,11 +89,6 @@ pub mod widgets {
                 )
                 .margin(1)
                 .split(area);
-
-            let redo = Spans::from(vec![
-                Span::from("PageUp: "),
-                Span::styled("Redo", Style::default().add_modifier(Modifier::BOLD)),
-            ]);
 
             let undo_redo = Spans::from(vec![
                 Span::from("PageDown: "),
@@ -126,6 +121,8 @@ pub mod widgets {
             ]);
             let block = Block::default().borders(Borders::ALL).title("Shortcuts");
             let mut text: Vec<Spans> = Vec::new();
+
+            // append all
             text.push(quit);
             text.push(modifier);
             text.push(undo_redo);
@@ -135,7 +132,7 @@ pub mod widgets {
             f.render_widget(paragraph, area);
         }
 
-        fn draw_charts<B>(&mut self, f: &mut Frame<B>, area: Rect)
+        fn draw_snapshot_pane<B>(&mut self, f: &mut Frame<B>, area: Rect)
         where
             B: Backend,
         {
