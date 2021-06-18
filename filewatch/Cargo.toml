@@ -8,4 +8,5 @@ edition = "2018"
 
 [dependencies]
 notify = "4.0.12"
+flume = "0.10.7"
 event_handle = { path = "../event_handle" }

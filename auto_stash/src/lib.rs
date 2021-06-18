@@ -36,6 +36,7 @@ impl Config {
 }
 
 use std::{env, time::Duration};
+use flume;
 
 use event_handle::event_handle::{EventHandle, EventHandleCommunication};
 use filewatch::FileWatch;
@@ -50,20 +51,21 @@ impl AutoStash {
     pub fn new(
         config: &Config,
         communication: EventHandleCommunication,
+        on_quit: flume::Receiver<()>,
     ) -> Result<AutoStash, Box<dyn std::error::Error>> {
         let store = Store::new(config.store_path.as_str(), config.watch_path.as_str())?;
 
         let mut event_handle = EventHandle::new(store, communication);
         event_handle.send_available_data();
         // event_handle.listen_to_undo_redo_command();
-        let watch = FileWatch::new(config.debounce_time, event_handle)?;
+        let watch = FileWatch::new(config.debounce_time, event_handle, on_quit)?;
 
         Ok(AutoStash {
             watch,
             watch_path: config.watch_path.clone(),
         })
     }
-    pub fn run(&mut self) -> Result<(), String> {
+    pub fn run(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         self.watch.start_watching(self.watch_path.as_str())
     }
 }

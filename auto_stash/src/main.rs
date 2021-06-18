@@ -1,16 +1,18 @@
-use std::{env, process, thread};
-
 use auto_stash::{AutoStash, Config};
 use event_handle::event_handle::EventHandleCommunication;
-use flume::bounded;
+use flume::unbounded;
+use std::sync::mpsc::channel;
+use std::{env, process, thread};
 use ui::ui::{UICommunication, UI};
 
 fn main() {
-    let (versions_to_ui, on_versions) = bounded(1);
-    let (lines_to_ui, on_lines) = bounded(1);
-    let (undo_to_handle, on_undo) = bounded(1);
-    let (redo_to_handle, on_redo) = bounded(1);
-    let (key_to_ui, on_key) = bounded(1);
+    let (versions_to_ui, on_versions) = unbounded();
+    let (lines_to_ui, on_lines) = unbounded();
+    let (undo_to_handle, on_undo) = unbounded();
+    let (redo_to_handle, on_redo) = unbounded();
+    let (key_to_ui, on_key) = unbounded();
+    let (quit_to_ui, on_quit) = unbounded();
+    let (quit_to_handle, on_handle_quit) = unbounded();
 
     let ui = UI::new(
         "".to_string(),
@@ -18,9 +20,12 @@ fn main() {
             on_key,
             on_lines,
             on_versions,
+            on_quit: on_quit.clone(),
             key_to_ui,
             redo_to_handle,
             undo_to_handle,
+            quit_to_ui,
+            quit_to_handle
         },
     );
 
@@ -44,6 +49,7 @@ fn main() {
             on_redo,
             on_undo,
         },
+        on_handle_quit
     )
     .unwrap_or_else(|err| {
         eprintln!("Problem creating auto stash: {:?}", err);

@@ -9,15 +9,17 @@ use tui::text::Spans;
 pub struct UICommunication {
     pub on_lines: Receiver<Vec<LineDifference>>,
     pub on_versions: Receiver<Vec<Version>>,
+    pub on_key: Receiver<Event<KeyEvent>>,
+    pub on_quit: Receiver<()>,
     pub undo_to_handle: Sender<usize>,
     pub redo_to_handle: Sender<usize>,
-    pub on_key: Receiver<Event<KeyEvent>>,
     pub key_to_ui: Sender<Event<KeyEvent>>,
+    pub quit_to_ui: Sender<()>,
+    pub quit_to_handle: Sender<()>
 }
 
 pub struct UIConfig {
     pub title: String,
-    pub should_quit: bool,
     pub show_chart: bool,
 }
 
@@ -30,6 +32,63 @@ pub struct UIState {
     pub pane_ptr: i8,
     pub new_version: Vec<LineDifference>,
     pub processed_diffs: Vec<Spans<'static>>,
+    pub should_quit: bool,
+}
+
+impl UIState {
+    pub fn on_up(&mut self) {
+        if self.pane_ptr > 0 {
+            self.filenames.previous();
+        } else {
+            self.lines.previous();
+        }
+    }
+
+    pub fn on_enter(&mut self) {
+        if self.pane_ptr > 0 {
+            self.lines.flush_display();
+            let data_for_selected_file = &self.all_versions[self.filenames.get_index()];
+            let diffs = data_for_selected_file.changes.clone();
+            // let diffs = r.changes.clone();
+            for d in diffs {
+                self.lines.add_item(d.line);
+            }
+            // println!("{}", self.filenames.get_index());
+        } else {
+        }
+    }
+
+    pub fn on_down(&mut self) {
+        if self.pane_ptr > 0 {
+            self.filenames.next();
+        } else {
+            self.lines.next();
+        }
+    }
+
+    pub fn on_right(&mut self) {
+        self.tabs.next();
+        // todo: change timeslice
+    }
+
+    pub fn on_left(&mut self) {
+        self.tabs.previous();
+        // todo: change timeslice
+    }
+
+    pub fn on_key(&mut self, c: char) {
+        match c {
+            'q' => {
+                self.should_quit = true;
+            }
+            's' => {
+                self.pane_ptr *= -1;
+            }
+            _ => {}
+        }
+    }
+
+    pub fn on_tick(&mut self) {}
 }
 
 pub struct UI {
@@ -43,7 +102,6 @@ impl UI {
         UI {
             config: UIConfig {
                 title,
-                should_quit: false,
                 show_chart: true,
             },
             state: UIState {
@@ -52,6 +110,7 @@ impl UI {
                     "24h".to_string(),
                     "7 Tage".to_string(),
                 ]),
+                should_quit: false,
                 all_versions: Vec::new(),
                 lines: StatefulList::with_items(vec![]),
                 filenames: StatefulList::with_items(vec![]),
@@ -63,57 +122,4 @@ impl UI {
             communication,
         }
     }
-    pub fn on_up(&mut self) {
-        if self.state.pane_ptr > 0 {
-            self.state.filenames.previous();
-        } else {
-            self.state.lines.previous();
-        }
-    }
-
-    pub fn on_enter(&mut self) {
-        if self.state.pane_ptr > 0 {
-            self.state.lines.flush_display();
-            let data_for_selected_file = &self.state.all_versions[self.state.filenames.get_index()];
-            let diffs = data_for_selected_file.changes.clone();
-            // let diffs = r.changes.clone();
-            for d in diffs {
-                self.state.lines.add_item(d.line);
-            }
-            // println!("{}", self.filenames.get_index());
-        } else {
-        }
-    }
-
-    pub fn on_down(&mut self) {
-        if self.state.pane_ptr > 0 {
-            self.state.filenames.next();
-        } else {
-            self.state.lines.next();
-        }
-    }
-
-    pub fn on_right(&mut self) {
-        self.state.tabs.next();
-        // todo: change timeslice
-    }
-
-    pub fn on_left(&mut self) {
-        self.state.tabs.previous();
-        // todo: change timeslice
-    }
-
-    pub fn on_key(&mut self, c: char) {
-        match c {
-            'q' => {
-                self.config.should_quit = true;
-            }
-            's' => {
-                self.state.pane_ptr *= -1;
-            }
-            _ => {}
-        }
-    }
-
-    pub fn on_tick(&mut self) {}
 }
