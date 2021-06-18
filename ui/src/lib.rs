@@ -49,12 +49,10 @@ fn listen_to_key_press(ui: Arc<Mutex<UI>>, tick_rate: Duration) -> JoinHandle<()
                     .unwrap_or_else(|| Duration::from_secs(0));
                 if event::poll(timeout).unwrap() {
                     if let CEvent::Key(key) = event::read().unwrap() {
-                        println!("{:?}", key);
                         ui.communication.key_to_ui.send(Event::Input(key)).unwrap();
                     }
                 }
                 if last_tick.elapsed() >= tick_rate {
-                    //ui.communication.key_to_ui.send(Event::Tick).unwrap();
                     last_tick = Instant::now();
                 }
                 if let Ok(_) = ui.communication.on_quit.try_recv() {
@@ -135,6 +133,12 @@ fn on_key(ui: Arc<Mutex<UI>>) -> JoinHandle<()> {
                         Event::Input(ev) => match ev.code {
                             KeyCode::Char(c) => {
                                 ui.state.on_key(c);
+                            }
+                            KeyCode::PageDown => {
+                                ui.communication.on_undo();
+                            }
+                            KeyCode::PageUp => {
+                                ui.communication.on_redo();
                             }
                             KeyCode::Up => {
                                 ui.state.on_up();

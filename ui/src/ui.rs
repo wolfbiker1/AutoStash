@@ -18,6 +18,19 @@ pub struct UICommunication {
     pub quit_to_handle: Sender<()>
 }
 
+impl UICommunication {
+    pub fn on_undo(&mut self) {
+        self.undo_to_handle.send(1).unwrap_or_else(|err| {
+            eprintln!("Could not undo step: {:?}", err);
+        });
+    }
+    pub fn on_redo(&mut self) {
+        self.redo_to_handle.send(1).unwrap_or_else(|err| {
+            eprintln!("Could not redo step: {:?}", err);
+        });
+    }
+}
+
 pub struct UIConfig {
     pub title: String,
     pub show_chart: bool,
