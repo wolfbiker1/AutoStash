@@ -69,6 +69,7 @@ name = "diff"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "itertools",
  "serde",
 ]
 
@@ -465,6 +466,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "simple-error"
+version = "0.1.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "01c1c2ededd95f93b1d65e7f8b5b17670e926bf9cbb55f8b91b26b0bd40d3259"
+
+[[package]]
 name = "slab"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -474,9 +481,12 @@ checksum = "f173ac3d1a7e3b28003f40de0b5ce7fe2710f9b9dc3fc38664cebee46b3b6527"
 name = "store"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "diff",
  "itertools",
  "pickledb",
+ "serde",
+ "simple-error",
  "walkdir",
 ]
 

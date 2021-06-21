@@ -15,5 +15,6 @@ fn main() {
 
     auto_stash.run().unwrap_or_else(|err| {
         eprintln!("Could not run auto stash: {:?}", err);
+        process::exit(1);
     });
 }
