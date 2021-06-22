@@ -4,13 +4,14 @@ pub mod event_handle {
     use notify::DebouncedEvent;
     use std::path::PathBuf;
     use std::process;
+    use std::sync::{Arc, Mutex};
     use std::thread;
     use store::store::Store;
     use store::store::Version;
 
     pub struct EventHandle {
-        store: Store,
-        communication: EventHandleCommunication,
+        store: Arc<Mutex<Store>>,
+        communication: Arc<EventHandleCommunication>,
     }
 
     pub struct EventHandleCommunication {
@@ -22,13 +23,13 @@ pub mod event_handle {
     impl EventHandle {
         pub fn new(store: Store, communication: EventHandleCommunication) -> EventHandle {
             EventHandle {
-                store,
-                communication,
+                store: Arc::new(Mutex::new(store)),
+                communication: Arc::new(communication),
             }
         }
 
-        pub fn send_available_data(&mut self) {
-            let data = self.store.view().unwrap();
+        pub fn init_versions(&mut self) {
+            let data = self.store.lock().unwrap().view().unwrap();
             self.communication
                 .versions_to_ui
                 .send(data)
@@ -38,17 +39,21 @@ pub mod event_handle {
                 });
         }
 
-        pub fn on_undo(&'static mut self) {
+        pub fn on_undo(&mut self) {
+            let communication = self.communication.clone();
+            let store = self.store.clone();
             thread::spawn(move || loop {
-                let count = self.communication.on_undo.recv().unwrap();
-                &self.store.undo_by(count);
+                let count = communication.on_undo.recv().unwrap();
+                store.lock().unwrap().undo_by(count).unwrap();
             });
         }
 
-        pub fn on_redo(&'static mut self) {
+        pub fn on_redo(&mut self) {
+            let communication = self.communication.clone();
+            let store = self.store.clone();
             thread::spawn(move || loop {
-                let count = self.communication.on_redo.recv().unwrap();
-                &self.store.redo_by(count);
+                let count = communication.on_redo.recv().unwrap();
+                store.lock().unwrap().redo_by(count).unwrap();
             });
         }
 
@@ -94,9 +99,12 @@ pub mod event_handle {
             let path = self.to_path(event).unwrap();
             let path = path.as_path().to_str().unwrap();
 
-            let changes = self.store.get_changes::<LineDifference>(path);
+            let mut store = self.store.lock().unwrap();
+
+            let changes = store
+                .get_changes::<LineDifference>(path);
             let changes = diff::find(path, &changes)?;
-            self.store.store_changes(path, &changes)
+            store.store_changes(path, &changes)
         }
 
         fn on_file_remove(&self, event: &DebouncedEvent) {
