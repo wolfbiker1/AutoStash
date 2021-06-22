@@ -163,12 +163,6 @@ fn on_key(ui: Arc<Mutex<UI>>) -> JoinHandle<()> {
                 }
                 Err(_) => (),
             }
-            match ui.communication.on_lines.try_recv() {
-                Ok(notify) => {
-                    ui.state.processed_diffs = util::process_new_version(notify);
-                }
-                Err(_) => ()
-            }
             if let Ok(_) = ui.communication.on_quit.try_recv() {
                 break;
             }

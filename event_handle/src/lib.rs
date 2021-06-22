@@ -15,7 +15,6 @@ pub mod event_handle {
 
     pub struct EventHandleCommunication {
         pub versions_to_ui: Sender<Vec<Version>>,
-        pub lines_to_ui: Sender<Vec<LineDifference>>,
         pub on_undo: Receiver<usize>,
         pub on_redo: Receiver<usize>,
     }
@@ -97,13 +96,6 @@ pub mod event_handle {
 
             let changes = self.store.get_changes::<LineDifference>(path);
             let changes = diff::find(path, &changes)?;
-            self.communication
-                .lines_to_ui
-                .send(changes.clone())
-                .unwrap_or_else(|err| {
-                    eprintln!("Could not transmit data to TUI {:?}", err);
-                    process::exit(1);
-                });
             self.store.store_changes(path, &changes)
         }
 
