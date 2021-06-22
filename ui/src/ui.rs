@@ -7,7 +7,6 @@ use store::store::Version;
 use tui::text::Spans;
 
 pub struct UICommunication {
-    pub on_lines: Receiver<Vec<LineDifference>>,
     pub on_versions: Receiver<Vec<Version>>,
     pub on_key: Receiver<Event<KeyEvent>>,
     pub on_quit: Receiver<()>,

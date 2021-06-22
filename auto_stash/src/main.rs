@@ -1,13 +1,11 @@
 use auto_stash::{AutoStash, Config};
 use event_handle::event_handle::EventHandleCommunication;
 use flume::unbounded;
-use std::sync::mpsc::channel;
 use std::{env, process, thread};
 use ui::ui::{UICommunication, UI};
 
 fn main() {
     let (versions_to_ui, on_versions) = unbounded();
-    let (lines_to_ui, on_lines) = unbounded();
     let (undo_to_handle, on_undo) = unbounded();
     let (redo_to_handle, on_redo) = unbounded();
     let (key_to_ui, on_key) = unbounded();
@@ -18,7 +16,6 @@ fn main() {
         "".to_string(),
         UICommunication {
             on_key,
-            on_lines,
             on_versions,
             on_quit: on_quit.clone(),
             key_to_ui,
@@ -44,7 +41,6 @@ fn main() {
     let mut auto_stash = AutoStash::new(
         &config,
         EventHandleCommunication {
-            lines_to_ui,
             versions_to_ui,
             on_redo,
             on_undo,
