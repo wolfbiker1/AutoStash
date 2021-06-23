@@ -5,7 +5,7 @@ use diff::LineDifference;
 use flume::{Receiver, Sender};
 use store::store::{FileVersions, TimeFrame};
 use tui::text::Spans;
-
+use crate::util::process_new_version;
 pub struct UICommunication {
     pub on_file_versions: Receiver<Vec<FileVersions>>,
     pub on_key: Receiver<Event<KeyEvent>>,
@@ -39,10 +39,12 @@ pub struct UIConfig {
 pub struct UIState {
     pub file_versions: Vec<FileVersions>,
     pub filenames: StatefulList<String>,
+    pub all_versions: Vec<FileVersions>,
     pub lines: StatefulList<String>,
     pub available_versions: Vec<String>,
     pub tabs: TabsState,
     pub pane_ptr: i8,
+    pub id_of_selected_file: usize,
     pub new_version: Vec<LineDifference>,
     pub processed_diffs: Vec<Spans<'static>>,
     pub should_quit: bool,
@@ -61,8 +63,11 @@ impl UIState {
     pub fn on_enter(&mut self) {
         if self.pane_ptr > 0 {
             self.lines.flush_display();
-            let data_for_selected_file = &self.file_versions[self.filenames.get_index()];
-
+            self.id_of_selected_file = self.filenames.get_index();
+            let versions_for_selected_file = &self.file_versions[self.id_of_selected_file as usize];
+            for v in &versions_for_selected_file.versions {
+                self.lines.add_item(v.datetime.to_string());
+            }
             /* TODO
             let diffs = data_for_selected_file.changes.clone();
             for d in diffs {
@@ -70,6 +75,12 @@ impl UIState {
             }
             */
         } else {
+            // grab snapshots for selected file
+            let selected_file = &self.file_versions[self.id_of_selected_file];
+            let selected_version = &selected_file.versions[self.lines.get_index()];
+            let diffs_for_this_version = &selected_version.changes;
+            println!("{}", diffs_for_this_version.len());
+            self.processed_diffs = process_new_version(diffs_for_this_version.clone());
         }
     }
     
@@ -129,10 +140,13 @@ impl UI {
                 should_quit: false,
                 file_versions: Vec::new(),
                 lines: StatefulList::with_items(vec![]),
+                // versions: StatefulList::with_items(vec![]),
                 filenames: StatefulList::with_items(vec![]),
                 available_versions: Vec::new(),
+                all_versions: Vec::new(),
                 processed_diffs: Vec::new(),
                 new_version: Vec::new(),
+                id_of_selected_file: 0,
                 pane_ptr: 1,
             },
             communication,

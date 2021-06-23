@@ -159,7 +159,7 @@ pub mod store {
 
             Ok(Store {
                 db,
-                time_frame: TimeFrame::MINUTE,
+                time_frame: TimeFrame::DAY,
             })
         }
 

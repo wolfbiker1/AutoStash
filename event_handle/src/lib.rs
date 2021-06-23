@@ -132,13 +132,11 @@ pub mod event_handle {
             let changes = diff::find(path, &changes)?;
             let stored = store.store_changes(path, &changes);
             let view = store.view()?;
-            println!("{:?}", view);
 
             stored
         }
 
         fn on_file_remove(&self, event: &DebouncedEvent) {
-            //println!("File removed: {:?}", event);
         }
 
         fn is_modification(&self, event: &DebouncedEvent) -> bool {

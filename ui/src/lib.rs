@@ -70,19 +70,18 @@ fn on_versions(ui: Arc<Mutex<UI>>) -> JoinHandle<()> {
             match ui.communication.on_file_versions.try_recv() {
                 Ok(res) => {
                     ui.state.file_versions = res;
-                    // Non-lexical borrows don't exist in rust yet
+
                     let state = &mut ui.state;
-                    let versions = &mut state.file_versions;
-                    let filenames = &mut state.filenames;
-                    versions.iter().for_each(|v| {
-                        filenames.add_item(v.path.clone());
-                        //ui.version_snapshots.add_item(string_to_static_str(String::from(r.datetime.to_string().clone())));
-                        // let diffs = r.changes.clone();
-                        // for d in diffs {
-                        // ui.version_snapshots.add_item(string_to_static_str(d.line));
+                    // // Fileversions
+                    for r in &state.file_versions {
+
+                        // FileVersions -> versions
+                        // for v in &r.versions {
+                        //     ui.state.lines.add_item(v.datetime.to_string());
                         // }
-                    });
-                    // ui.title = string_to_static_str(String::from("bar"));
+                        state.filenames.add_item(r.path.clone());
+                    }
+                    // ui.state.file_versions = res;
                 }
                 Err(e) => {
                     //println!("{:?}", e);
