@@ -86,9 +86,10 @@ impl UIState {
         } else {
             self.lines.previous();
         }
+        self.update_pane_content();
     }
 
-    pub fn on_enter(&mut self) {
+    pub fn update_pane_content(&mut self) {
         if self.pane_ptr > 0 {
             self.lines.flush_display();
             self.id_of_selected_file = self.filenames.get_index();
@@ -113,14 +114,18 @@ impl UIState {
         } else {
             self.lines.next();
         }
+        self.update_pane_content();
     }
 
     pub fn on_right(&mut self) {
         self.tabs.next();
+        self.update_pane_content();
+
     }
 
     pub fn on_left(&mut self) {
         self.tabs.previous();
+        self.update_pane_content();
     }
 
     pub fn on_key(&mut self, c: char) {
