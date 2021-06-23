@@ -6,6 +6,7 @@ use flume::{Receiver, Sender};
 use store::store::{FileVersions, TimeFrame};
 use tui::text::Spans;
 use crate::util::process_new_version;
+
 pub struct UICommunication {
     pub on_file_versions: Receiver<Vec<FileVersions>>,
     pub on_key: Receiver<Event<KeyEvent>>,
@@ -28,6 +29,29 @@ impl UICommunication {
         self.redo_to_handle.send((path, count)).unwrap_or_else(|err| {
             eprintln!("Could not redo step: {:?}", err);
         });
+    }
+    pub fn on_timeslice_change(&mut self, selected_slot: usize) {
+        let time_frame: TimeFrame;
+        match selected_slot {
+            0 => { time_frame = TimeFrame::HOUR }
+            1 => { time_frame = TimeFrame::DAY }
+            2 => { time_frame = TimeFrame::WEEK }
+            // satifsy compiler
+            _ => { time_frame = TimeFrame::DAY }
+        }
+        self.time_frame_change_to_handle.send(time_frame).unwrap_or_else(|err| {
+            eprintln!("Could not undo step: {:?}", err);
+        });
+    }
+}
+
+pub struct UITimeSlots {
+    pub slots: Vec<TimeFrame>
+}
+
+impl UITimeSlots {
+    pub fn new() /* -> self */ {
+
     }
 }
 
@@ -68,12 +92,6 @@ impl UIState {
             for v in &versions_for_selected_file.versions {
                 self.lines.add_item(v.datetime.to_string());
             }
-            /* TODO
-            let diffs = data_for_selected_file.changes.clone();
-            for d in diffs {
-                self.lines.add_item(d.line);
-            }
-            */
         } else {
             // grab snapshots for selected file
             let selected_file = &self.file_versions[self.id_of_selected_file];
@@ -95,12 +113,10 @@ impl UIState {
 
     pub fn on_right(&mut self) {
         self.tabs.next();
-        // todo: change timeslice
     }
 
     pub fn on_left(&mut self) {
         self.tabs.previous();
-        // todo: change timeslice
     }
 
     pub fn on_key(&mut self, c: char) {
@@ -122,6 +138,7 @@ pub struct UI {
     pub config: UIConfig,
     pub state: UIState,
     pub communication: UICommunication,
+    pub timeslots: UITimeSlots
 }
 
 impl UI {
@@ -150,6 +167,9 @@ impl UI {
                 pane_ptr: 1,
             },
             communication,
+            timeslots: UITimeSlots {
+                slots: vec![TimeFrame::HOUR, TimeFrame::DAY, TimeFrame::WEEK]
+            }
         }
     }
 }

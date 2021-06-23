@@ -59,6 +59,7 @@ impl AutoStash {
         event_handle.init_file_versions();
         event_handle.on_redo();
         event_handle.on_undo();
+        event_handle.on_time_frame_change();
         let watch = FileWatch::new(config.debounce_time, event_handle, on_quit)?;
 
         Ok(AutoStash {

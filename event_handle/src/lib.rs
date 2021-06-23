@@ -50,6 +50,7 @@ pub mod event_handle {
             let store = self.store.clone();
             thread::spawn(move || loop {
                 let time_frame = communication.on_time_frame_change.recv().unwrap();
+                println!("to ");
                 store.lock().unwrap().change_time_frame(time_frame);
                 transmit_file_versions(&EventHandle {
                     communication: communication.clone(),

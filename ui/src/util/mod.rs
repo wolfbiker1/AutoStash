@@ -14,7 +14,9 @@ impl TabsState {
     pub fn next(&mut self) {
         self.index = (self.index + 1) % self.titles.len();
     }
-
+    pub fn get_index(&mut self) -> usize {
+        self.index
+    }
     pub fn previous(&mut self) {
         if self.index > 0 {
             self.index -= 1;

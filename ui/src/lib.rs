@@ -149,9 +149,13 @@ fn on_key(ui: Arc<Mutex<UI>>) -> JoinHandle<()> {
                             }
                             KeyCode::Left => {
                                 ui.state.on_left();
+                                let current_id = ui.state.tabs.get_index();
+                                ui.communication.on_timeslice_change(current_id);
                             }
                             KeyCode::Right => {
                                 ui.state.on_right();
+                                let current_id = ui.state.tabs.get_index();
+                                ui.communication.on_timeslice_change(current_id);
                             }
                             KeyCode::Enter => {
                                 ui.state.on_enter();
