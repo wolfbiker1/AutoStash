@@ -42,12 +42,12 @@ pub fn process_new_version(diffs: Vec<LineDifference>) -> Vec<Spans<'static>> {
         v.push(Span::raw(" : -> "));
         v.push(Span::styled(
             diff.line.clone(),
-            Style::default().fg(Color::Red),
+            Style::default().fg(Color::Rgb(191, 97, 106)),
         ));
         v.push(Span::raw(" -> "));
         v.push(Span::styled(
             diff.changed_line.clone(),
-            Style::default().fg(Color::Green),
+            Style::default().fg(Color::Rgb(163, 190, 140)),
         ));
         v.push(Span::raw("\n"));
         spans.push(Spans::from(v.clone()));

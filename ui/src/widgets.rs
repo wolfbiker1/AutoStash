@@ -21,7 +21,7 @@ pub mod widgets {
                 .tabs
                 .titles
                 .iter()
-                .map(|t| Spans::from(Span::styled(t.as_str(), Style::default().fg(Color::Green))))
+                .map(|t| Spans::from(Span::styled(t.as_str(), Style::default().fg(Color::Rgb(94,129,172)))))
                 .collect();
             let tabs = Tabs::new(titles)
                 .block(
@@ -29,7 +29,7 @@ pub mod widgets {
                         .borders(Borders::ALL)
                         .title(self.config.title.as_str()),
                 )
-                .highlight_style(Style::default().fg(Color::Yellow))
+                .highlight_style(Style::default().fg(Color::Rgb(136,192,208)))
                 .select(self.state.tabs.index);
             f.render_widget(tabs, chunks[0]);
             self.draw_tab(f, chunks[1])
@@ -182,19 +182,21 @@ pub mod widgets {
                         .collect();
                     let mut snapshots = List::new(snapshots)
                         .highlight_style(Style::default().add_modifier(Modifier::BOLD))
-                        .highlight_symbol("x ");
+                        .highlight_symbol("►");
                     if self.state.pane_ptr == 1 {
                         snapshots = snapshots.block(
                             Block::default()
                                 .borders(Borders::ALL)
-                                .title("Available Snapshot"),
+                                .border_style(Style::default().fg(Color::Rgb(129,161,193)))
+                                .title(Span::styled("Available Snapshot", Style::default().fg(Color::Rgb(94,129,172))))
                         );
                     } else {
                         snapshots = snapshots.block(
                             Block::default()
+                                .title(Span::styled("Available Snapshot", Style::default().fg(Color::Rgb(136,192,208))))
+                                .border_style(Style::default().fg(Color::Rgb(129,161,193)))
                                 .borders(Borders::ALL)
                                 .border_type(BorderType::Thick)
-                                .title("Available Snapshot"),
                         );
                     }
 
@@ -219,17 +221,18 @@ pub mod widgets {
 
                 let mut filenames = List::new(filenames)
                     .highlight_style(Style::default().add_modifier(Modifier::BOLD))
-                    .highlight_symbol("x ");
+                    .highlight_symbol("►");
                 if self.state.pane_ptr == 1 {
                     filenames = filenames.block(
                         Block::default()
                             .borders(Borders::ALL)
+                            .border_style(Style::default().fg(Color::Rgb(129,161,193)))
                             .border_type(BorderType::Thick)
-                            .title("Filename"),
+                            .title(Span::styled("Filename", Style::default().fg(Color::Rgb(136,192,208)))),
                     );
                 } else {
                     filenames =
-                        filenames.block(Block::default().borders(Borders::ALL).title("Filename"));
+                        filenames.block(Block::default().border_style(Style::default().fg(Color::Rgb(129,161,193))).borders(Borders::ALL).title(Span::styled("Filename", Style::default().fg(Color::Rgb(94,129,172)))));
                 }
                 f.render_stateful_widget(filenames, chunks[1], &mut self.state.filenames.state);
             }
@@ -253,9 +256,10 @@ pub mod widgets {
                             .title(Span::styled(
                                 "Hits-Of-Code",
                                 Style::default()
-                                    .fg(Color::Cyan)
-                                    .add_modifier(Modifier::BOLD),
+                                    .fg(Color::Rgb(94,129,172))
+                                    // .add_modifier(Modifier::BOLD),
                             ))
+                            .border_style(Style::default().fg(Color::Rgb(129,161,193)))
                             .borders(Borders::ALL),
                     )
                     .x_axis(

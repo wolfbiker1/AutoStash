@@ -1,7 +1,7 @@
 pub mod ui;
 mod util;
 mod widgets;
-
+use crossterm::style::{SetForegroundColor, SetBackgroundColor, ResetColor, Color, Attribute};
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event as CEvent, KeyCode},
     execute,
@@ -27,6 +27,8 @@ pub enum Event<I> {
 fn init_terminal() -> Result<Terminal<CrosstermBackend<Stdout>>, Box<dyn Error>> {
     enable_raw_mode()?;
     let mut stdout = stdout();
+    // color experimental
+    // execute!(stdout, EnterAlternateScreen, SetBackgroundColor(Color::Rgb{r: 59, g: 66, b: 82}), EnableMouseCapture)?;
     execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
@@ -77,9 +79,9 @@ fn on_versions(ui: Arc<Mutex<UI>>) -> JoinHandle<()> {
                         state.filenames.add_item(r.path.clone());
                     }
                     // wip:
-                    state.lines.add_item(String::from(
-                        "< Timeslice or File does not have any changes yet >",
-                    ));
+                    // state.lines.add_item(String::from(
+                    //     "< Timeslice or File does not have any changes yet >",
+                    // ));
                 }
                 Err(_) => {}
             }
