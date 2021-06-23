@@ -28,7 +28,7 @@ pub mod store {
     }
 
     #[derive(Debug)]
-    pub struct FileVersion {
+    pub struct FileVersions {
         pub path: String,
         pub versions: Vec<Version>,
     }
@@ -209,7 +209,7 @@ pub mod store {
 
         pub fn view(
             &mut self
-        ) -> Result<Vec<FileVersion>, Box<dyn error::Error>> {
+        ) -> Result<Vec<FileVersions>, Box<dyn error::Error>> {
             let now = Utc::now().naive_utc();
 
             Ok(self
@@ -229,11 +229,11 @@ pub mod store {
                         path: version_stack.path,
                     }
                 })
-                .map(|version_stack| -> FileVersion {
+                .map(|version_stack| -> FileVersions {
                     let path = version_stack.clone().path;
                     let versions = self.get_versions(version_stack);
 
-                    FileVersion { path, versions }
+                    FileVersions { path, versions }
                 })
                 .collect_vec())
         }
@@ -385,7 +385,7 @@ pub mod store {
             });
             Ok(())
         }
-        
+
         fn redo_changes(&self, changes: &Vec<LineDifference>) -> Result<(), Box<dyn error::Error>> { 
             let path = changes.first().unwrap().path.clone();
             let file = File::open(path.clone())?;

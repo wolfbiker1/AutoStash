@@ -2,14 +2,13 @@ pub mod event_handle {
     use diff::LineDifference;
     use flume::{Receiver, Sender};
     use notify::DebouncedEvent;
-    use store::store::FileVersion;
+    use store::store::FileVersions;
     use store::store::TimeFrame;
     use std::path::PathBuf;
     use std::process;
     use std::sync::{Arc, Mutex};
     use std::thread;
     use store::store::Store;
-    use store::store::Version;
 
     pub struct EventHandle {
         store: Arc<Mutex<Store>>,
@@ -17,7 +16,7 @@ pub mod event_handle {
     }
 
     pub struct EventHandleCommunication {
-        pub file_versions_to_ui: Sender<Vec<FileVersion>>,
+        pub file_versions_to_ui: Sender<Vec<FileVersions>>,
         pub on_undo: Receiver<(String, usize)>,
         pub on_redo: Receiver<(String, usize)>,
         pub on_time_frame_change: Receiver<TimeFrame>

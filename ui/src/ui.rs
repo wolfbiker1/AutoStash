@@ -3,11 +3,11 @@ use crate::Event;
 use crossterm::event::KeyEvent;
 use diff::LineDifference;
 use flume::{Receiver, Sender};
-use store::store::{FileVersion, TimeFrame};
+use store::store::{FileVersions, TimeFrame};
 use tui::text::Spans;
 
 pub struct UICommunication {
-    pub on_file_versions: Receiver<Vec<FileVersion>>,
+    pub on_file_versions: Receiver<Vec<FileVersions>>,
     pub on_key: Receiver<Event<KeyEvent>>,
     pub on_quit: Receiver<()>,
     pub undo_to_handle: Sender<(String, usize)>,
@@ -37,7 +37,7 @@ pub struct UIConfig {
 }
 
 pub struct UIState {
-    pub file_versions: Vec<FileVersion>,
+    pub file_versions: Vec<FileVersions>,
     pub filenames: StatefulList<String>,
     pub lines: StatefulList<String>,
     pub available_versions: Vec<String>,
