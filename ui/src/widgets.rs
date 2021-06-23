@@ -94,44 +94,44 @@ pub mod widgets {
                 .split(area);
 
             let undo_redo = Spans::from(vec![
-                Span::from("PageDown: "),
+                Span::from(" (ESC) "),
                 Span::styled("Undo", Style::default().add_modifier(Modifier::BOLD)),
-                Span::from(" | "),
-                Span::from("PageUp: "),
+                Span::from(" , "),
+                Span::from("(TAB) "),
                 Span::styled("Redo", Style::default().add_modifier(Modifier::BOLD)),
             ]);
             let modifier = Spans::from(vec![
-                Span::from("s: "),
-                Span::styled("modifier", Style::default().add_modifier(Modifier::BOLD)),
+                Span::from("(s) "),
+                Span::styled("switch panes", Style::default().add_modifier(Modifier::BOLD)),
             ]);
             let arrow_up_down = Spans::from(vec![
-                Span::from("modifier, then arrow_up: "),
+                Span::from("(▲)"),
                 Span::styled(
-                    "Select Snapshot Pane",
+                    "Line above",
                     Style::default().add_modifier(Modifier::BOLD),
                 ),
-                Span::from(" | "),
-                Span::from("modifier, then arrow_down: "),
+                Span::from(" , "),
+                Span::from("(▼) "),
                 Span::styled(
-                    "Select Filename Pane",
+                    "Line below",
                     Style::default().add_modifier(Modifier::BOLD),
                 ),
             ]);
             let arrow_left_right = Spans::from(vec![
-                Span::from("arrow_left: "),
+                Span::from("(◄) "),
                 Span::styled(
                     "Decrease Timeslice",
                     Style::default().add_modifier(Modifier::BOLD),
                 ),
-                Span::from(" | "),
-                Span::from("arrow_right: "),
+                Span::from(" , "),
+                Span::from(" (►) "),
                 Span::styled(
                     "Increase Timeslice",
                     Style::default().add_modifier(Modifier::BOLD),
                 ),
             ]);
             let quit = Spans::from(vec![
-                Span::from("q: "),
+                Span::from("(q) "),
                 Span::styled("Quit", Style::default().add_modifier(Modifier::BOLD)),
             ]);
             let block = Block::default().borders(Borders::ALL).title("Shortcuts");

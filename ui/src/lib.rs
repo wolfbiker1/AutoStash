@@ -130,12 +130,12 @@ fn on_key(ui: Arc<Mutex<UI>>) -> JoinHandle<()> {
                                 ui.state.on_key(c);
                             }
                             // TODO
-                            KeyCode::PageDown => {
+                            KeyCode::Esc => {
                                 let selected_path = ui.state.path_of_selected_file.clone();
                                 ui.communication.on_undo(selected_path, 1);
                             }
                             // TODO
-                            KeyCode::PageUp => {
+                            KeyCode::Tab => {
                                 let selected_path = ui.state.path_of_selected_file.clone();
                                 ui.communication.on_redo(selected_path, 1);
                             }
