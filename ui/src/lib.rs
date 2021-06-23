@@ -70,22 +70,18 @@ fn on_versions(ui: Arc<Mutex<UI>>) -> JoinHandle<()> {
             match ui.communication.on_file_versions.try_recv() {
                 Ok(res) => {
                     ui.state.file_versions = res;
-
                     let state = &mut ui.state;
+                    state.filenames.flush_display();
                     // // Fileversions
                     for r in &state.file_versions {
-
-                        // FileVersions -> versions
-                        // for v in &r.versions {
-                        //     ui.state.lines.add_item(v.datetime.to_string());
-                        // }
                         state.filenames.add_item(r.path.clone());
                     }
-                    // ui.state.file_versions = res;
+                    // wip:
+                    state.lines.add_item(String::from(
+                        "< Timeslice or File does not have any changes yet >",
+                    ));
                 }
-                Err(e) => {
-                    //println!("{:?}", e);
-                }
+                Err(_) => {}
             }
 
             if let Ok(_) = ui.communication.on_quit.try_recv() {
@@ -135,11 +131,13 @@ fn on_key(ui: Arc<Mutex<UI>>) -> JoinHandle<()> {
                             }
                             // TODO
                             KeyCode::PageDown => {
-                                ui.communication.on_undo("".to_string(), 1);
+                                let selected_path = ui.state.path_of_selected_file.clone();
+                                ui.communication.on_undo(selected_path, 1);
                             }
                             // TODO
                             KeyCode::PageUp => {
-                                ui.communication.on_redo("".to_string(), 1);
+                                let selected_path = ui.state.path_of_selected_file.clone();
+                                ui.communication.on_redo(selected_path, 1);
                             }
                             KeyCode::Up => {
                                 ui.state.on_up();
@@ -149,11 +147,13 @@ fn on_key(ui: Arc<Mutex<UI>>) -> JoinHandle<()> {
                             }
                             KeyCode::Left => {
                                 ui.state.on_left();
+                                ui.state.lines.flush_display();
                                 let current_id = ui.state.tabs.get_index();
                                 ui.communication.on_timeslice_change(current_id);
                             }
                             KeyCode::Right => {
                                 ui.state.on_right();
+                                ui.state.lines.flush_display();
                                 let current_id = ui.state.tabs.get_index();
                                 ui.communication.on_timeslice_change(current_id);
                             }
@@ -162,8 +162,7 @@ fn on_key(ui: Arc<Mutex<UI>>) -> JoinHandle<()> {
                             }
                             _ => {}
                         },
-                        Event::Tick => {
-                        }
+                        Event::Tick => {}
                     }
                 }
                 Err(_) => (),

@@ -6,7 +6,9 @@ pub mod widgets {
         style::{Color, Modifier, Style},
         symbols,
         text::{Span, Spans},
-        widgets::{Axis, Block, Borders, Chart, Dataset, List, ListItem, Paragraph, Tabs, Wrap},
+        widgets::{
+            Axis, Block, BorderType, Borders, Chart, Dataset, List, ListItem, Paragraph, Tabs, Wrap,
+        },
         Frame,
     };
     impl UI {
@@ -69,6 +71,7 @@ pub mod widgets {
                 .margin(1)
                 .split(area);
             let block = Block::default().borders(Borders::ALL).title("Differences");
+            // let block = block.border_type(BorderType::Thick);
             let text: Vec<Spans> = self.state.processed_diffs.clone();
             let paragraph = Paragraph::new(text).block(block).wrap(Wrap { trim: true });
             f.render_widget(paragraph, area);
@@ -103,17 +106,29 @@ pub mod widgets {
             ]);
             let arrow_up_down = Spans::from(vec![
                 Span::from("modifier, then arrow_up: "),
-                Span::styled("Select Snapshot Pane", Style::default().add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    "Select Snapshot Pane",
+                    Style::default().add_modifier(Modifier::BOLD),
+                ),
                 Span::from(" | "),
                 Span::from("modifier, then arrow_down: "),
-                Span::styled("Select Filename Pane", Style::default().add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    "Select Filename Pane",
+                    Style::default().add_modifier(Modifier::BOLD),
+                ),
             ]);
             let arrow_left_right = Spans::from(vec![
                 Span::from("arrow_left: "),
-                Span::styled("Decrease Timeslice", Style::default().add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    "Decrease Timeslice",
+                    Style::default().add_modifier(Modifier::BOLD),
+                ),
                 Span::from(" | "),
                 Span::from("arrow_right: "),
-                Span::styled("Increase Timeslice", Style::default().add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    "Increase Timeslice",
+                    Style::default().add_modifier(Modifier::BOLD),
+                ),
             ]);
             let quit = Spans::from(vec![
                 Span::from("q: "),
@@ -132,6 +147,7 @@ pub mod widgets {
             f.render_widget(paragraph, area);
         }
 
+        // pane 1
         fn draw_snapshot_pane<B>(&mut self, f: &mut Frame<B>, area: Rect)
         where
             B: Backend,
@@ -157,23 +173,32 @@ pub mod widgets {
                         .direction(Direction::Horizontal)
                         .split(chunks[0]);
 
-                    // Draw tasks
-                    let tasks: Vec<ListItem> = self
+                    let snapshots: Vec<ListItem> = self
                         .state
                         .lines
                         .items
                         .iter()
                         .map(|i| ListItem::new(vec![Spans::from(Span::raw(i.as_str()))]))
                         .collect();
-                    let tasks = List::new(tasks)
-                        .block(
+                    let mut snapshots = List::new(snapshots)
+                        .highlight_style(Style::default().add_modifier(Modifier::BOLD))
+                        .highlight_symbol("x ");
+                    if self.state.pane_ptr == 1 {
+                        snapshots = snapshots.block(
                             Block::default()
                                 .borders(Borders::ALL)
                                 .title("Available Snapshot"),
-                        )
-                        .highlight_style(Style::default().add_modifier(Modifier::BOLD))
-                        .highlight_symbol("x ");
-                    f.render_stateful_widget(tasks, chunks[0], &mut self.state.lines.state);
+                        );
+                    } else {
+                        snapshots = snapshots.block(
+                            Block::default()
+                                .borders(Borders::ALL)
+                                .border_type(BorderType::Thick)
+                                .title("Available Snapshot"),
+                        );
+                    }
+
+                    f.render_stateful_widget(snapshots, chunks[0], &mut self.state.lines.state);
                 }
 
                 {
@@ -184,18 +209,29 @@ pub mod widgets {
                         .direction(Direction::Horizontal)
                         .split(chunks[0]);
                 }
-                let tasks: Vec<ListItem> = self
+                let filenames: Vec<ListItem> = self
                     .state
                     .filenames
                     .items
                     .iter()
                     .map(|i| ListItem::new(vec![Spans::from(Span::raw(i.as_str()))]))
                     .collect();
-                let tasks = List::new(tasks)
-                    .block(Block::default().borders(Borders::ALL).title("Filename"))
+
+                let mut filenames = List::new(filenames)
                     .highlight_style(Style::default().add_modifier(Modifier::BOLD))
                     .highlight_symbol("x ");
-                f.render_stateful_widget(tasks, chunks[1], &mut self.state.filenames.state);
+                if self.state.pane_ptr == 1 {
+                    filenames = filenames.block(
+                        Block::default()
+                            .borders(Borders::ALL)
+                            .border_type(BorderType::Thick)
+                            .title("Filename"),
+                    );
+                } else {
+                    filenames =
+                        filenames.block(Block::default().borders(Borders::ALL).title("Filename"));
+                }
+                f.render_stateful_widget(filenames, chunks[1], &mut self.state.filenames.state);
             }
             if self.config.show_chart {
                 let x_labels = vec![];

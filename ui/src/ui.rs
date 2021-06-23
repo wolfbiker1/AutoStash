@@ -1,3 +1,4 @@
+use crate::util::process_new_version;
 use crate::util::{StatefulList, TabsState};
 use crate::Event;
 use crossterm::event::KeyEvent;
@@ -5,7 +6,6 @@ use diff::LineDifference;
 use flume::{Receiver, Sender};
 use store::store::{FileVersions, TimeFrame};
 use tui::text::Spans;
-use crate::util::process_new_version;
 
 pub struct UICommunication {
     pub on_file_versions: Receiver<Vec<FileVersions>>,
@@ -21,38 +21,42 @@ pub struct UICommunication {
 
 impl UICommunication {
     pub fn on_undo(&mut self, path: String, count: usize) {
-        self.undo_to_handle.send((path, count)).unwrap_or_else(|err| {
-            eprintln!("Could not undo step: {:?}", err);
-        });
+        self.undo_to_handle
+            .send((path, count))
+            .unwrap_or_else(|err| {
+                eprintln!("Could not undo step: {:?}", err);
+            });
     }
     pub fn on_redo(&mut self, path: String, count: usize) {
-        self.redo_to_handle.send((path, count)).unwrap_or_else(|err| {
-            eprintln!("Could not redo step: {:?}", err);
-        });
+        self.redo_to_handle
+            .send((path, count))
+            .unwrap_or_else(|err| {
+                eprintln!("Could not redo step: {:?}", err);
+            });
     }
     pub fn on_timeslice_change(&mut self, selected_slot: usize) {
         let time_frame: TimeFrame;
         match selected_slot {
-            0 => { time_frame = TimeFrame::HOUR }
-            1 => { time_frame = TimeFrame::DAY }
-            2 => { time_frame = TimeFrame::WEEK }
+            0 => time_frame = TimeFrame::HOUR,
+            1 => time_frame = TimeFrame::DAY,
+            2 => time_frame = TimeFrame::WEEK,
             // satifsy compiler
-            _ => { time_frame = TimeFrame::DAY }
+            _ => time_frame = TimeFrame::DAY,
         }
-        self.time_frame_change_to_handle.send(time_frame).unwrap_or_else(|err| {
-            eprintln!("Could not undo step: {:?}", err);
-        });
+        self.time_frame_change_to_handle
+            .send(time_frame)
+            .unwrap_or_else(|err| {
+                eprintln!("Could not set timeframe: {:?}", err);
+            });
     }
 }
 
 pub struct UITimeSlots {
-    pub slots: Vec<TimeFrame>
+    pub slots: Vec<TimeFrame>,
 }
 
 impl UITimeSlots {
-    pub fn new() /* -> self */ {
-
-    }
+    pub fn new() /* -> self */ {}
 }
 
 pub struct UIConfig {
@@ -71,6 +75,7 @@ pub struct UIState {
     pub id_of_selected_file: usize,
     pub new_version: Vec<LineDifference>,
     pub processed_diffs: Vec<Spans<'static>>,
+    pub path_of_selected_file: String,
     pub should_quit: bool,
 }
 
@@ -83,12 +88,12 @@ impl UIState {
         }
     }
 
-    
     pub fn on_enter(&mut self) {
         if self.pane_ptr > 0 {
             self.lines.flush_display();
             self.id_of_selected_file = self.filenames.get_index();
             let versions_for_selected_file = &self.file_versions[self.id_of_selected_file as usize];
+            self.path_of_selected_file = versions_for_selected_file.path.clone();
             for v in &versions_for_selected_file.versions {
                 self.lines.add_item(v.datetime.to_string());
             }
@@ -97,11 +102,10 @@ impl UIState {
             let selected_file = &self.file_versions[self.id_of_selected_file];
             let selected_version = &selected_file.versions[self.lines.get_index()];
             let diffs_for_this_version = &selected_version.changes;
-            println!("{}", diffs_for_this_version.len());
+            self.processed_diffs.clear();
             self.processed_diffs = process_new_version(diffs_for_this_version.clone());
         }
     }
-    
 
     pub fn on_down(&mut self) {
         if self.pane_ptr > 0 {
@@ -138,7 +142,7 @@ pub struct UI {
     pub config: UIConfig,
     pub state: UIState,
     pub communication: UICommunication,
-    pub timeslots: UITimeSlots
+    pub timeslots: UITimeSlots,
 }
 
 impl UI {
@@ -163,13 +167,14 @@ impl UI {
                 all_versions: Vec::new(),
                 processed_diffs: Vec::new(),
                 new_version: Vec::new(),
+                path_of_selected_file: String::new(),
                 id_of_selected_file: 0,
                 pane_ptr: 1,
             },
             communication,
             timeslots: UITimeSlots {
-                slots: vec![TimeFrame::HOUR, TimeFrame::DAY, TimeFrame::WEEK]
-            }
+                slots: vec![TimeFrame::HOUR, TimeFrame::DAY, TimeFrame::WEEK],
+            },
         }
     }
 }

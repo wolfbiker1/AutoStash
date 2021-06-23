@@ -9,7 +9,7 @@ pub static RFC3339: &str = "%Y-%m-%dT%H:%M:%S%.9f%:z";
 /*
     SCENARIOS:
     - Line is changed from 'a' to 'b'
-        - Simple: Create a new LineDifference with the same line_number, line set to 'a' and changed_line set to 'b' 
+        - Simple: Create a new LineDifference with the same line_number, line set to 'a' and changed_line set to 'b'
     - Line is moved from line x to line y
         - Tricky: Create a new LineDifference with the new line_number, line set to '' and changed_line set to 'a'
         - If line is moved downwards, decrement all line_numbers of previous lines
@@ -175,7 +175,10 @@ fn find_changed_or_added_line(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::{fs::{OpenOptions, remove_file}, io::Write};
+    use std::{
+        fs::{remove_file, OpenOptions},
+        io::Write,
+    };
 
     fn init(path: &str) -> Result<(), Box<dyn std::error::Error>> {
         let mut file = std::fs::File::create(path)?;

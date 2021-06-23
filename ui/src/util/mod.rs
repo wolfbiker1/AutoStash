@@ -32,15 +32,19 @@ pub fn process_new_version(diffs: Vec<LineDifference>) -> Vec<Spans<'static>> {
     for diff in &diffs {
         v.push(Span::raw("\n"));
         v.push(Span::styled(
-            diff.line_number.to_string(),
-            Style::default().fg(Color::Blue),
+            String::from("Line "),
+            Style::default().fg(Color::Gray),
         ));
-        v.push(Span::raw("->"));
+        v.push(Span::styled(
+            diff.line_number.to_string(),
+            Style::default().fg(Color::Gray),
+        ));
+        v.push(Span::raw(" : -> "));
         v.push(Span::styled(
             diff.line.clone(),
             Style::default().fg(Color::Red),
         ));
-        v.push(Span::raw("->"));
+        v.push(Span::raw(" -> "));
         v.push(Span::styled(
             diff.changed_line.clone(),
             Style::default().fg(Color::Green),
