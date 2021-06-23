@@ -56,7 +56,7 @@ impl AutoStash {
         let store = Store::new(config.store_path.as_str(), config.watch_path.as_str())?;
 
         let mut event_handle = EventHandle::new(store, communication);
-        event_handle.init_versions();
+        event_handle.init_file_versions();
         event_handle.on_redo();
         event_handle.on_undo();
         let watch = FileWatch::new(config.debounce_time, event_handle, on_quit)?;

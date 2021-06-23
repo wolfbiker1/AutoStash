@@ -67,15 +67,15 @@ fn on_versions(ui: Arc<Mutex<UI>>) -> JoinHandle<()> {
     thread::spawn(move || {
         loop {
             let mut ui = ui.lock();
-            match ui.communication.on_versions.try_recv() {
+            match ui.communication.on_file_versions.try_recv() {
                 Ok(res) => {
-                    ui.state.all_versions = res;
+                    ui.state.file_versions = res;
                     // Non-lexical borrows don't exist in rust yet
                     let state = &mut ui.state;
-                    let versions = &mut state.all_versions;
+                    let versions = &mut state.file_versions;
                     let filenames = &mut state.filenames;
                     versions.iter().for_each(|v| {
-                        filenames.add_item(v.name.clone());
+                        filenames.add_item(v.path.clone());
                         //ui.version_snapshots.add_item(string_to_static_str(String::from(r.datetime.to_string().clone())));
                         // let diffs = r.changes.clone();
                         // for d in diffs {
@@ -134,11 +134,13 @@ fn on_key(ui: Arc<Mutex<UI>>) -> JoinHandle<()> {
                             KeyCode::Char(c) => {
                                 ui.state.on_key(c);
                             }
+                            // TODO
                             KeyCode::PageDown => {
-                                ui.communication.on_undo();
+                                ui.communication.on_undo("".to_string(), 1);
                             }
+                            // TODO
                             KeyCode::PageUp => {
-                                ui.communication.on_redo();
+                                ui.communication.on_redo("".to_string(), 1);
                             }
                             KeyCode::Up => {
                                 ui.state.on_up();
