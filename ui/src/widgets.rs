@@ -11,6 +11,16 @@ pub mod widgets {
         },
         Frame,
     };
+
+
+    static IS_HIGHLIGHTED: Color = Color::Rgb(235,203,139);
+    static IS_BORDER: Color = Color::Rgb(129,161,193);
+    static IS_HEADLINE: Color = Color::Rgb(136,192,208);
+    static IS_LIGHT_WITE: Color = Color::Rgb(216, 222, 233);
+    static IS_BACKGROUND_TEXT: Color = Color::Rgb(76, 86, 106);
+    static IS_WARNING: Color = Color::Rgb(208, 135, 112);
+
+
     impl UI {
         pub fn draw<B: Backend>(&mut self, f: &mut Frame<B>) {
             let chunks = Layout::default()
@@ -26,11 +36,11 @@ pub mod widgets {
             let tabs = Tabs::new(titles)
                 .block(
                     Block::default()
-                        .border_style(Style::default().fg(Color::Rgb(129,161,193)))
+                        .border_style(Style::default().fg(IS_BORDER))
                         .borders(Borders::ALL)
                         .title(self.config.title.as_str()),
                 )
-                .highlight_style(Style::default().fg(Color::Rgb(235,203,139)))
+                .highlight_style(Style::default().fg(IS_HIGHLIGHTED))
                 .select(self.state.tabs.index);
             f.render_widget(tabs, chunks[0]);
             self.draw_tab(f, chunks[1])
@@ -71,7 +81,7 @@ pub mod widgets {
                 )
                 .margin(1)
                 .split(area);
-            let block = Block::default().border_style(Style::default().fg(Color::Rgb(136,192,208))).borders(Borders::ALL).title("Differences");
+            let block = Block::default().border_style(Style::default().fg(IS_BORDER)).borders(Borders::ALL).title("Differences");
             // let block = block.border_type(BorderType::Thick);
             let text: Vec<Spans> = self.state.processed_diffs.clone();
             let paragraph = Paragraph::new(text).block(block).wrap(Wrap { trim: true });
@@ -95,47 +105,45 @@ pub mod widgets {
                 .split(area);
 
             let undo_redo = Spans::from(vec![
-                Span::from(" (ESC) "),
-                Span::styled("Undo", Style::default().add_modifier(Modifier::BOLD)),
+                Span::styled("esc ", Style::default().add_modifier(Modifier::BOLD).fg(IS_WARNING)),
+                Span::styled("Undo", Style::default().add_modifier(Modifier::DIM).fg(IS_LIGHT_WITE)),
                 Span::from(" , "),
-                Span::from("(TAB) "),
-                Span::styled("Redo", Style::default().add_modifier(Modifier::BOLD)),
+                Span::styled("tab ", Style::default().add_modifier(Modifier::BOLD).fg(IS_WARNING)),
+                Span::styled("Redo", Style::default().add_modifier(Modifier::DIM).fg(IS_LIGHT_WITE))
             ]);
             let modifier = Spans::from(vec![
-                Span::from("(s) "),
-                Span::styled("switch panes", Style::default().add_modifier(Modifier::BOLD)),
+                Span::styled("s ", Style::default().add_modifier(Modifier::BOLD).fg(IS_WARNING)),
+                Span::styled("switch panes", Style::default().add_modifier(Modifier::DIM).fg(IS_LIGHT_WITE))
             ]);
             let arrow_up_down = Spans::from(vec![
-                Span::from("(▲)"),
+                Span::styled("▲ ", Style::default().add_modifier(Modifier::BOLD).fg(IS_WARNING)),
                 Span::styled(
                     "Line above",
-                    Style::default().add_modifier(Modifier::BOLD),
+                    Style::default().add_modifier(Modifier::DIM).fg(IS_LIGHT_WITE)
                 ),
                 Span::from(" , "),
-                Span::from("(▼) "),
-                Span::styled(
-                    "Line below",
-                    Style::default().add_modifier(Modifier::BOLD),
+                Span::styled("▼ ", Style::default().add_modifier(Modifier::BOLD).fg(IS_WARNING)),
+                Span::styled("Line below", Style::default().add_modifier(Modifier::DIM).fg(IS_LIGHT_WITE),
                 ),
             ]);
             let arrow_left_right = Spans::from(vec![
-                Span::from("(◄) "),
+                Span::styled("◄ ", Style::default().add_modifier(Modifier::BOLD).fg(IS_WARNING)),
                 Span::styled(
                     "Decrease Timeslice",
-                    Style::default().add_modifier(Modifier::BOLD),
+                    Style::default().add_modifier(Modifier::DIM).fg(IS_LIGHT_WITE)
                 ),
                 Span::from(" , "),
-                Span::from(" (►) "),
+                Span::styled("► ", Style::default().add_modifier(Modifier::BOLD).fg(IS_WARNING)),
                 Span::styled(
                     "Increase Timeslice",
-                    Style::default().add_modifier(Modifier::BOLD),
+                    Style::default().add_modifier(Modifier::DIM).fg(IS_LIGHT_WITE),
                 ),
             ]);
             let quit = Spans::from(vec![
-                Span::from("(q) "),
-                Span::styled("Quit", Style::default().add_modifier(Modifier::BOLD)),
+                Span::styled("q ", Style::default().add_modifier(Modifier::BOLD).fg(IS_WARNING)),
+                Span::styled("Quit", Style::default().add_modifier(Modifier::DIM).fg(IS_LIGHT_WITE)),
             ]);
-            let block = Block::default().border_style(Style::default().fg(Color::Rgb(136,192,208))).borders(Borders::ALL).title("Shortcuts");
+            let block = Block::default().border_style(Style::default().fg(IS_BORDER)).borders(Borders::ALL).title("Shortcuts");
             let mut text: Vec<Spans> = Vec::new();
 
             // append all
@@ -182,20 +190,21 @@ pub mod widgets {
                         .map(|i| ListItem::new(vec![Spans::from(Span::raw(i.as_str()))]))
                         .collect();
                     let mut snapshots = List::new(snapshots)
+                        .style(Style::default().fg(IS_LIGHT_WITE))
                         .highlight_symbol("►")
-                        .highlight_style(Style::default().add_modifier(Modifier::BOLD).fg(Color::Rgb(235,203,139)));
+                        .highlight_style(Style::default().add_modifier(Modifier::BOLD).fg(IS_HIGHLIGHTED));
                     if self.state.pane_ptr == 1 {
                         snapshots = snapshots.block(
                             Block::default()
                                 .borders(Borders::ALL)
-                                .border_style(Style::default().fg(Color::Rgb(129,161,193)))
-                                .title(Span::styled("Available Snapshot", Style::default().fg(Color::Rgb(136,192,208))))
+                                .border_style(Style::default().fg(IS_BORDER))
+                                .title(Span::styled("Available Snapshot", Style::default().fg(IS_HEADLINE)))
                         );
                     } else {
                         snapshots = snapshots.block(
                             Block::default()
-                                .title(Span::styled("Available Snapshot", Style::default().fg(Color::Rgb(136,192,208))))
-                                .border_style(Style::default().fg(Color::Rgb(129,161,193)))
+                                .title(Span::styled("Available Snapshot", Style::default().fg(IS_HEADLINE)))
+                                .border_style(Style::default().fg(IS_BORDER))
                                 .borders(Borders::ALL)
                                 .border_type(BorderType::Thick)
                         );
@@ -221,20 +230,21 @@ pub mod widgets {
                     .collect();
 
                 let mut filenames = List::new(filenames)
-                    .highlight_symbol("►")
-                    .highlight_style(Style::default().add_modifier(Modifier::BOLD).fg(Color::Rgb(235,203,139)));
-                
+                .highlight_style(Style::default().add_modifier(Modifier::BOLD).fg(IS_HIGHLIGHTED))
+                .highlight_symbol("►")
+                .style(Style::default().fg(IS_LIGHT_WITE));
+                    
                 if self.state.pane_ptr == 1 {
                     filenames = filenames.block(
                         Block::default()
                             .borders(Borders::ALL)
-                            .border_style(Style::default().fg(Color::Rgb(129,161,193)))
+                            .border_style(Style::default().fg(IS_BORDER))
                             .border_type(BorderType::Thick)
-                            .title(Span::styled("Filename", Style::default().fg(Color::Rgb(136,192,208)))),
+                            .title(Span::styled("Filename", Style::default().fg(IS_HEADLINE))),
                     );
                 } else {
                     filenames =
-                        filenames.block(Block::default().border_style(Style::default().fg(Color::Rgb(136,192,208))).borders(Borders::ALL).title(Span::styled("Filename", Style::default().fg(Color::Rgb(94,129,172)))));
+                        filenames.block(Block::default().border_style(Style::default().fg(IS_BORDER)).borders(Borders::ALL).title(Span::styled("Filename", Style::default().fg(Color::Rgb(94,129,172)))));
                 }
                 f.render_stateful_widget(filenames, chunks[1], &mut self.state.filenames.state);
             }
@@ -244,7 +254,7 @@ pub mod widgets {
                     Dataset::default()
                         .name("Hits of Code")
                         .marker(symbols::Marker::Braille)
-                        .style(Style::default().fg(Color::Rgb(235,203,139)))
+                        .style(Style::default().fg(IS_HIGHLIGHTED).add_modifier(Modifier::DIM))
                         .data(&[(0.0, 0.0) ,
                         (1.0, 1.0) ,
                         (2.0, 2.0) ,
@@ -352,28 +362,26 @@ pub mod widgets {
                         Block::default()
                             .title(Span::styled(
                                 "Hits-Of-Code",
-                                Style::default()
-                                    .fg(Color::Rgb(136,192,208))
-                                    // .add_modifier(Modifier::BOLD),
+                                Style::default().fg(IS_HEADLINE)
                             ))
-                            .border_style(Style::default().fg(Color::Rgb(129,161,193)))
+                            .border_style(Style::default().fg(IS_BORDER))
                             .borders(Borders::ALL),
                     )
                     .x_axis(
                         Axis::default()
                             .title("Date")
-                            .style(Style::default().fg(Color::Gray))
+                            .style(Style::default().add_modifier(Modifier::DIM).fg(IS_LIGHT_WITE))
                             .bounds([0.0, 100.0])
                             .labels(x_labels),
                     )
                     .y_axis(
                         Axis::default()
                             // .title("Hits-of-code * 10000")
-                            .style(Style::default().fg(Color::Gray))
+                            .style(Style::default().add_modifier(Modifier::DIM).fg(IS_LIGHT_WITE))
                             .bounds([0.0, 100.0])
                             .labels(vec![
-                                Span::styled("0", Style::default().add_modifier(Modifier::BOLD)),
-                                Span::styled("100", Style::default().add_modifier(Modifier::BOLD)),
+                                Span::styled("0", Style::default().fg(IS_LIGHT_WITE).add_modifier(Modifier::DIM)),
+                                Span::styled("100", Style::default().fg(IS_LIGHT_WITE).add_modifier(Modifier::DIM)),
                             ]),
                     );
                 f.render_widget(chart, chunks[1]);
