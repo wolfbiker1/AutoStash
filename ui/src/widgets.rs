@@ -38,7 +38,7 @@ pub mod widgets {
                     Block::default()
                         .border_style(Style::default().fg(IS_BORDER))
                         .borders(Borders::ALL)
-                        .title(self.config.title.as_str()),
+                        .title("Timeslice"),
                 )
                 .highlight_style(Style::default().fg(IS_HIGHLIGHTED))
                 .select(self.state.tabs.index);
