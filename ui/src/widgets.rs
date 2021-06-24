@@ -17,7 +17,7 @@ pub mod widgets {
     static IS_BORDER: Color = Color::Rgb(129,161,193);
     static IS_HEADLINE: Color = Color::Rgb(136,192,208);
     static IS_LIGHT_WITE: Color = Color::Rgb(216, 222, 233);
-    static IS_BACKGROUND_TEXT: Color = Color::Rgb(76, 86, 106);
+    static _IS_BACKGROUND_TEXT: Color = Color::Rgb(76, 86, 106);
     static IS_WARNING: Color = Color::Rgb(208, 135, 112);
 
 

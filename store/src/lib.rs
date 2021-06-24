@@ -369,7 +369,7 @@ pub mod store {
                         let found = found.unwrap();
                         return found.line.clone();
                     }
-                    return line;
+                    line
                 })
                 .collect();
 
@@ -399,11 +399,11 @@ pub mod store {
                         let found = found.unwrap();
                         return found.changed_line.clone();
                     }
-                    return line;
+                    line
                 })
                 .collect();
 
-            let mut file = File::open(path.clone())?;
+            let mut file = File::open(path)?;
             file.write_all(undone_lines.join("").as_bytes())
                 .map_err(|err| err.into())
         }

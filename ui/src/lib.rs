@@ -1,7 +1,7 @@
 pub mod ui;
 mod util;
 mod widgets;
-use crossterm::style::{SetForegroundColor, SetBackgroundColor, ResetColor, Color, Attribute};
+// use crossterm::style::{SetForegroundColor, SetBackgroundColor, ResetColor, Color, Attribute};
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event as CEvent, KeyCode},
     execute,

@@ -131,12 +131,12 @@ pub mod event_handle {
             let changes = store.get_file_changes::<LineDifference>(path);
             let changes = diff::find(path, &changes)?;
             let stored = store.store_changes(path, &changes);
-            let view = store.view()?;
+            let _view = store.view()?;
 
             stored
         }
 
-        fn on_file_remove(&self, event: &DebouncedEvent) {
+        fn on_file_remove(&self, _event: &DebouncedEvent) {
         }
 
         fn is_modification(&self, event: &DebouncedEvent) -> bool {
