@@ -78,6 +78,7 @@ fn on_versions(ui: Arc<Mutex<UI>>) -> JoinHandle<()> {
                     for r in &state.file_versions {
                         state.filenames.add_item(r.path.clone());
                     }
+                    ui.state.update_pane_content();
                     // wip:
                     // state.lines.add_item(String::from(
                     //     "< Timeslice or File does not have any changes yet >",

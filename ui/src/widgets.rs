@@ -221,7 +221,7 @@ pub mod widgets {
                         .direction(Direction::Horizontal)
                         .split(chunks[0]);
                 }
-                let filenames: Vec<ListItem> = self
+                let filenames_list: Vec<ListItem> = self
                     .state
                     .filenames
                     .items
@@ -229,11 +229,12 @@ pub mod widgets {
                     .map(|i| ListItem::new(vec![Spans::from(Span::raw(i.as_str()))]))
                     .collect();
 
-                let mut filenames = List::new(filenames)
+
+                let mut filenames = List::new(filenames_list)
                 .highlight_style(Style::default().add_modifier(Modifier::BOLD).fg(IS_HIGHLIGHTED))
                 .highlight_symbol("►")
-                .style(Style::default().fg(IS_LIGHT_WITE));
-                    
+                .style(Style::default().fg(IS_LIGHT_WITE));     
+
                 if self.state.pane_ptr == 1 {
                     filenames = filenames.block(
                         Block::default()
