@@ -35,7 +35,6 @@ impl Config {
     }
 }
 
-use flume;
 use std::{env, time::Duration};
 
 use event_handle::event_handle::{EventHandle, EventHandleCommunication};

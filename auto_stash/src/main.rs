@@ -18,7 +18,7 @@ fn main() {
         UICommunication {
             on_key,
             on_file_versions,
-            on_quit: on_quit.clone(),
+            on_quit,
             time_frame_change_to_handle,
             key_to_ui,
             redo_to_handle,
