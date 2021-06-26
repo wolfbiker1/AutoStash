@@ -27,8 +27,6 @@ pub enum Event<I> {
 fn init_terminal() -> Result<Terminal<CrosstermBackend<Stdout>>, Box<dyn Error>> {
     enable_raw_mode()?;
     let mut stdout = stdout();
-    // color experimental
-    // execute!(stdout, EnterAlternateScreen, SetBackgroundColor(Color::Rgb{r: 59, g: 66, b: 82}), EnableMouseCapture)?;
     execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
@@ -79,10 +77,6 @@ fn on_versions(ui: Arc<Mutex<UI>>) -> JoinHandle<()> {
                         state.filenames.add_item(r.path.clone());
                     }
                     ui.state.update_pane_content();
-                    // wip:
-                    // state.lines.add_item(String::from(
-                    //     "< Timeslice or File does not have any changes yet >",
-                    // ));
                 }
                 Err(_) => {}
             }
@@ -184,6 +178,11 @@ fn quit(mut terminal: Terminal<CrosstermBackend<Stdout>>) -> Result<(), Box<dyn 
     Ok(())
 }
 
+/// 
+/// sets up crossterm - terminal, inits event listeners, 
+/// starts the rx-listeners, draws the terminal
+/// in an infinite loop 
+/// 
 pub fn run(ui: UI) -> Result<(), Box<dyn Error>> {
     let terminal = init_terminal()?;
     let tick_rate = Duration::from_millis(300);

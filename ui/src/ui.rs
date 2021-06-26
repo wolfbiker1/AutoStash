@@ -7,6 +7,10 @@ use flume::{Receiver, Sender};
 use store::store::{FileVersions, TimeFrame};
 use tui::text::Spans;
 
+///
+/// contains channel pairs (tx & rx) which 
+/// are used for backend - frontend communication
+/// 
 pub struct UICommunication {
     pub on_file_versions: Receiver<Vec<FileVersions>>,
     pub on_key: Receiver<Event<KeyEvent>>,
@@ -51,6 +55,10 @@ impl UICommunication {
     }
 }
 
+
+///
+/// contains a vector for selectable time slots
+/// 
 pub struct UITimeSlots {
     pub slots: Vec<TimeFrame>,
 }
@@ -59,11 +67,20 @@ impl UITimeSlots {
     pub fn new() /* -> self */ {}
 }
 
+
+///
+/// defines the app's title
+/// 
 pub struct UIConfig {
     pub title: String,
-    pub show_chart: bool,
 }
 
+
+///
+/// contains datastructures to store 
+/// tui states like selected pane, visible versions,
+/// snapshots, ...
+/// 
 pub struct UIState {
     pub file_versions: Vec<FileVersions>,
     pub filenames: StatefulList<String>,
@@ -80,6 +97,11 @@ pub struct UIState {
 }
 
 impl UIState {
+
+    ///
+    /// loads metainfo for the selected file and places all snapshots into the
+    /// snapshot pane
+    /// 
     pub fn update_file_pane(&mut self) {
         self.snapshots.flush_display();
         match self.filenames.get_index() {
@@ -94,7 +116,9 @@ impl UIState {
             self.snapshots.add_item(v.datetime.to_string());
         }
     }
-
+    ///
+    /// loads the changes for the selected file, places them into diffpane
+    /// 
     pub fn update_snapshot_pane(&mut self) {
         let selected_file = &self.file_versions[self.id_of_selected_file];
 
@@ -111,6 +135,9 @@ impl UIState {
         }
     }
 
+    /// Reads state of selected pane
+    /// 0 -> Pane for stored files
+    /// 1 -> Pane for available snapshot for selected file
     pub fn update_pane_content(&mut self) {
         if self.pane_ptr > 0 {
             self.update_file_pane();
@@ -118,7 +145,9 @@ impl UIState {
             self.update_snapshot_pane();
         }
     }
-
+    ///
+    /// selects the following item in the list
+    /// 
     pub fn on_up(&mut self) {
         if self.pane_ptr > 0 {
             self.filenames.previous();
@@ -129,7 +158,9 @@ impl UIState {
         }
         self.update_pane_content();
     }
-
+    ///
+    /// selects the following item in the list
+    /// 
     pub fn on_down(&mut self) {
         if self.pane_ptr > 0 {
             self.filenames.next();
@@ -141,6 +172,13 @@ impl UIState {
         self.update_pane_content();
     }
 
+    ///
+    /// called on pressing arrow right. 
+    /// increases the timeslice by 1 unit.
+    /// this function clears the array where the difflines are stored,
+    /// deselects any snapshot of the list, loads a new value into the
+    /// snapshot buffer and the refreshs the difference pane.
+    /// 
     pub fn on_right(&mut self) {
         self.processed_diffs.clear();
         self.snapshots.unselect();
@@ -150,6 +188,13 @@ impl UIState {
         self.update_pane_content();
     }
 
+    ///
+    /// called on pressing arrow left. 
+    /// decreases the timeslice by 1 unit.
+    /// this function clears the array where the difflines are stored,
+    /// deselects any snapshot of the list, loads a new value into the
+    /// snapshot buffer and the refreshs the difference pane.
+    /// 
     pub fn on_left(&mut self) {
         self.processed_diffs.clear();
         self.snapshots.unselect();
@@ -159,6 +204,11 @@ impl UIState {
         self.update_pane_content();
     }
 
+    /// expects a char to process actions
+    /// ```
+    /// //will quit the application
+    /// on_key('q') {}
+    /// ```
     pub fn on_key(&mut self, c: char) {
         match c {
             'q' => {
@@ -170,10 +220,12 @@ impl UIState {
             _ => {}
         }
     }
-
-    pub fn on_tick(&mut self) {}
 }
 
+
+///
+/// contains subdatastructures for the UI
+/// 
 pub struct UI {
     pub config: UIConfig,
     pub state: UIState,
@@ -186,7 +238,6 @@ impl UI {
         UI {
             config: UIConfig {
                 title,
-                show_chart: true,
             },
             state: UIState {
                 tabs: TabsState::new(vec![

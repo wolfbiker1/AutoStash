@@ -224,13 +224,9 @@ pub mod widgets {
         where
             B: Backend,
         {
-            let constraints = if self.config.show_chart {
-                vec![Constraint::Percentage(50), Constraint::Percentage(50)]
-            } else {
-                vec![Constraint::Percentage(100)]
-            };
+            let constrains = vec![Constraint::Percentage(50), Constraint::Percentage(50)];
             let chunks = Layout::default()
-                .constraints(constraints)
+                .constraints(constrains)
                 .direction(Direction::Horizontal)
                 .split(area);
             {
@@ -332,7 +328,6 @@ pub mod widgets {
                 }
                 f.render_stateful_widget(filenames, chunks[1], &mut self.state.filenames.state);
             }
-            if self.config.show_chart {
                 let x_labels = vec![];
                 let datasets = vec![Dataset::default()
                     .name("Hits of Code")
@@ -490,7 +485,6 @@ pub mod widgets {
                             ]),
                     );
                 f.render_widget(chart, chunks[1]);
-            }
         }
     }
 }
