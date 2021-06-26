@@ -55,7 +55,7 @@ fn listen_to_key_press(ui: Arc<Mutex<UI>>, tick_rate: Duration) -> JoinHandle<()
                 if last_tick.elapsed() >= tick_rate {
                     last_tick = Instant::now();
                 }
-                if let Ok(_) = ui.communication.on_quit.try_recv() {
+                if ui.communication.on_quit.try_recv().is_ok() {
                     break;
                 }
             }
@@ -67,21 +67,16 @@ fn on_versions(ui: Arc<Mutex<UI>>) -> JoinHandle<()> {
     thread::spawn(move || {
         loop {
             let mut ui = ui.lock();
-            match ui.communication.on_file_versions.try_recv() {
-                Ok(res) => {
+            if let Ok(res) = ui.communication.on_file_versions.try_recv() {
                     ui.state.file_versions = res;
                     let state = &mut ui.state;
                     state.filenames.flush_display();
-                    // // Fileversions
                     for r in &state.file_versions {
                         state.filenames.add_item(r.path.clone());
                     }
                     ui.state.update_pane_content();
-                }
-                Err(_) => {}
             }
-
-            if let Ok(_) = ui.communication.on_quit.try_recv() {
+            if ui.communication.on_quit.try_recv().is_ok() {
                 break;
             }
         }
@@ -119,9 +114,9 @@ fn on_key(ui: Arc<Mutex<UI>>) -> JoinHandle<()> {
     thread::spawn(move || {
         loop {
             let mut ui = ui.lock();
-            match ui.communication.on_key.try_recv() {
-                Ok(ev) => {
-                    match ev {
+            
+            if let Ok(ev) = ui.communication.on_key.try_recv() {
+                match ev {
                         Event::Input(ev) => match ev.code {
                             KeyCode::Char(c) => {
                                 ui.state.on_key(c);
@@ -155,11 +150,9 @@ fn on_key(ui: Arc<Mutex<UI>>) -> JoinHandle<()> {
                             _ => {}
                         },
                         Event::Tick => {}
-                    }
                 }
-                Err(_) => (),
             }
-            if let Ok(_) = ui.communication.on_quit.try_recv() {
+            if ui.communication.on_quit.try_recv().is_ok() {
                 break;
             }
         }

@@ -63,10 +63,6 @@ pub struct UITimeSlots {
     pub slots: Vec<TimeFrame>,
 }
 
-impl UITimeSlots {
-    pub fn new() /* -> self */ {}
-}
-
 
 ///
 /// defines the app's title
@@ -104,11 +100,8 @@ impl UIState {
     /// 
     pub fn update_file_pane(&mut self) {
         self.snapshots.flush_display();
-        match self.filenames.get_index() {
-            Some(i) => {
+        if let Some(i) = self.filenames.get_index() {
                 self.id_of_selected_file = i;
-            }
-            None => {}
         }
         let versions_for_selected_file = &self.file_versions[self.id_of_selected_file as usize];
         self.path_of_selected_file = versions_for_selected_file.path.clone();
@@ -122,15 +115,12 @@ impl UIState {
     pub fn update_snapshot_pane(&mut self) {
         let selected_file = &self.file_versions[self.id_of_selected_file];
 
-        if &selected_file.versions.len() > &0 {
-            match self.snapshots.get_index() {
-                Some(i) => {
+        if !selected_file.versions.is_empty() {
+            if let Some(i) = self.snapshots.get_index() {
                     let selected_version = &selected_file.versions[i];
                     let diffs_for_this_version = &selected_version.changes;
                     self.processed_diffs.clear();
                     self.processed_diffs = process_new_version(diffs_for_this_version.clone());
-                }
-                None => {}
             }
         }
     }
@@ -151,10 +141,8 @@ impl UIState {
     pub fn on_up(&mut self) {
         if self.pane_ptr > 0 {
             self.filenames.previous();
-        } else {
-            if !self.snapshots.list_is_empty() {
+        } else if !self.snapshots.list_is_empty() {
                 self.snapshots.previous();
-            }
         }
         self.update_pane_content();
     }
@@ -164,10 +152,8 @@ impl UIState {
     pub fn on_down(&mut self) {
         if self.pane_ptr > 0 {
             self.filenames.next();
-        } else {
-            if !self.snapshots.list_is_empty() {
+        } else if !self.snapshots.list_is_empty() {
                 self.snapshots.next();
-            }
         }
         self.update_pane_content();
     }
