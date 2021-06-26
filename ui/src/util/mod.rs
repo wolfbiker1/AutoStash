@@ -7,7 +7,6 @@ pub struct TabsState {
     pub index: usize,
 }
 
-
 static IS_DANGER: Color = Color::Rgb(191, 97, 106);
 static IS_SUCCESS: Color = Color::Rgb(163, 190, 140);
 static IS_LIGHT_WITE: Color = Color::Rgb(216, 222, 233);
@@ -38,11 +37,15 @@ pub fn process_new_version(diffs: Vec<LineDifference>) -> Vec<Spans<'static>> {
         v.push(Span::raw("\n"));
         v.push(Span::styled(
             String::from("l"),
-            Style::default().add_modifier(Modifier::DIM).fg(IS_LIGHT_WITE),
+            Style::default()
+                .add_modifier(Modifier::DIM)
+                .fg(IS_LIGHT_WITE),
         ));
         v.push(Span::styled(
             diff.line_number.to_string(),
-            Style::default().add_modifier(Modifier::DIM).fg(IS_LIGHT_WITE),
+            Style::default()
+                .add_modifier(Modifier::DIM)
+                .fg(IS_LIGHT_WITE),
         ));
         v.push(Span::raw(" » "));
 
@@ -53,7 +56,9 @@ pub fn process_new_version(diffs: Vec<LineDifference>) -> Vec<Spans<'static>> {
 
         v.push(Span::styled(
             previous_line,
-            Style::default().add_modifier(Modifier::ITALIC).fg(IS_DANGER),
+            Style::default()
+                .add_modifier(Modifier::ITALIC)
+                .fg(IS_DANGER),
         ));
         v.push(Span::raw(" » "));
 
@@ -64,7 +69,9 @@ pub fn process_new_version(diffs: Vec<LineDifference>) -> Vec<Spans<'static>> {
 
         v.push(Span::styled(
             changed_line,
-            Style::default().add_modifier(Modifier::ITALIC).fg(IS_SUCCESS),
+            Style::default()
+                .add_modifier(Modifier::ITALIC)
+                .fg(IS_SUCCESS),
         ));
         v.push(Span::raw("\n"));
         spans.push(Spans::from(v.clone()));
@@ -107,8 +114,16 @@ impl<T> StatefulList<T> {
         self.items.push(item);
     }
 
-    pub fn get_index(&mut self) -> usize {
-        self.state.selected().unwrap_or(0)
+    pub fn reset_index(&mut self) {
+        // self.state.reset();
+    }
+
+    pub fn list_is_empty(&mut self) -> bool {
+        self.items.is_empty()
+    }
+
+    pub fn get_index(&mut self) -> Option<usize> {
+        self.state.selected()
     }
 
     pub fn next(&mut self) {
@@ -141,5 +156,21 @@ impl<T> StatefulList<T> {
 
     pub fn unselect(&mut self) {
         self.state.select(None);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn diff_to_ui_representation() {
+        let path = "test2.txt";
+        let diff = vec![LineDifference::new(
+            path.to_string(),
+            5,
+            "".to_string(),
+            "Hello World".to_string(),
+        )];
+        assert_eq!(2, 2);
     }
 }

@@ -24,7 +24,7 @@ fn main() {
             redo_to_handle,
             undo_to_handle,
             quit_to_ui,
-            quit_to_handle
+            quit_to_handle,
         },
     );
 
@@ -46,9 +46,9 @@ fn main() {
             file_versions_to_ui,
             on_redo,
             on_undo,
-            on_time_frame_change
+            on_time_frame_change,
         },
-        on_handle_quit
+        on_handle_quit,
     )
     .unwrap_or_else(|err| {
         eprintln!("Problem creating auto stash: {:?}", err);

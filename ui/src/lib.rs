@@ -150,13 +150,11 @@ fn on_key(ui: Arc<Mutex<UI>>) -> JoinHandle<()> {
                             }
                             KeyCode::Left => {
                                 ui.state.on_left();
-                                ui.state.lines.flush_display();
                                 let current_id = ui.state.tabs.get_index();
                                 ui.communication.on_timeslice_change(current_id);
                             }
                             KeyCode::Right => {
                                 ui.state.on_right();
-                                ui.state.lines.flush_display();
                                 let current_id = ui.state.tabs.get_index();
                                 ui.communication.on_timeslice_change(current_id);
                             }

@@ -2,13 +2,13 @@ pub mod event_handle {
     use diff::LineDifference;
     use flume::{Receiver, Sender};
     use notify::DebouncedEvent;
-    use store::store::FileVersions;
-    use store::store::TimeFrame;
     use std::path::PathBuf;
     use std::process;
     use std::sync::{Arc, Mutex};
     use std::thread;
+    use store::store::FileVersions;
     use store::store::Store;
+    use store::store::TimeFrame;
 
     pub struct EventHandle {
         store: Arc<Mutex<Store>>,
@@ -19,12 +19,13 @@ pub mod event_handle {
         pub file_versions_to_ui: Sender<Vec<FileVersions>>,
         pub on_undo: Receiver<(String, usize)>,
         pub on_redo: Receiver<(String, usize)>,
-        pub on_time_frame_change: Receiver<TimeFrame>
+        pub on_time_frame_change: Receiver<TimeFrame>,
     }
 
     fn transmit_file_versions(event_handle: &EventHandle) {
         let view = event_handle.store.lock().unwrap().view().unwrap();
-        event_handle.communication
+        event_handle
+            .communication
             .file_versions_to_ui
             .send(view)
             .unwrap_or_else(|err| {
@@ -53,7 +54,7 @@ pub mod event_handle {
                 store.lock().unwrap().change_time_frame(time_frame);
                 transmit_file_versions(&EventHandle {
                     communication: communication.clone(),
-                    store: store.clone()
+                    store: store.clone(),
                 });
             });
         }
@@ -66,7 +67,7 @@ pub mod event_handle {
                 store.lock().unwrap().undo_by(path, count).unwrap();
                 transmit_file_versions(&EventHandle {
                     communication: communication.clone(),
-                    store: store.clone()
+                    store: store.clone(),
                 });
             });
         }
@@ -79,7 +80,7 @@ pub mod event_handle {
                 store.lock().unwrap().redo_by(path, count).unwrap();
                 transmit_file_versions(&EventHandle {
                     communication: communication.clone(),
-                    store: store.clone()
+                    store: store.clone(),
                 });
             });
         }
@@ -136,8 +137,7 @@ pub mod event_handle {
             stored
         }
 
-        fn on_file_remove(&self, _event: &DebouncedEvent) {
-        }
+        fn on_file_remove(&self, _event: &DebouncedEvent) {}
 
         fn is_modification(&self, event: &DebouncedEvent) -> bool {
             if let DebouncedEvent::Write(_) = event {

@@ -1,8 +1,8 @@
 extern crate simple_error;
 
 pub mod store {
-    use chrono::Utc;
     use chrono::NaiveDateTime;
+    use chrono::Utc;
     use diff::LineDifference;
     use itertools::Itertools;
     use pickledb::{PickleDb, PickleDbDumpPolicy, SerializationMethod};
@@ -207,9 +207,7 @@ pub mod store {
             self.redo(path, count)
         }
 
-        pub fn view(
-            &mut self
-        ) -> Result<Vec<FileVersions>, Box<dyn error::Error>> {
+        pub fn view(&mut self) -> Result<Vec<FileVersions>, Box<dyn error::Error>> {
             let now = Utc::now().naive_utc();
 
             Ok(self
@@ -308,7 +306,10 @@ pub mod store {
             self.redo_versions(versions)
         }
 
-        pub fn get_file_changes<T: DeserializeOwned + std::fmt::Debug>(&self, path: &str) -> Vec<T> {
+        pub fn get_file_changes<T: DeserializeOwned + std::fmt::Debug>(
+            &self,
+            path: &str,
+        ) -> Vec<T> {
             self.db
                 .liter(path)
                 .map(|e| e.get_item::<T>().unwrap())
@@ -386,7 +387,7 @@ pub mod store {
             Ok(())
         }
 
-        fn redo_changes(&self, changes: &Vec<LineDifference>) -> Result<(), Box<dyn error::Error>> { 
+        fn redo_changes(&self, changes: &Vec<LineDifference>) -> Result<(), Box<dyn error::Error>> {
             let path = changes.first().unwrap().path.clone();
             let file = File::open(path.clone())?;
             let undone_lines: Vec<String> = io::BufReader::new(file)
