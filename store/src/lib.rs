@@ -57,8 +57,8 @@ pub mod store {
     impl TimeFrame {
         pub fn value(&self) -> i64 {
             match &self {
-                &Self::MINUTE => 1 * 60,
-                &Self::HOUR => 1 * 60 * &Self::MINUTE.value(),
+                &Self::MINUTE => 60,
+                &Self::HOUR => 60 * &Self::MINUTE.value(),
                 &Self::DAY => 24 * &Self::HOUR.value(),
                 &Self::WEEK => 7 * &Self::DAY.value(),
             }

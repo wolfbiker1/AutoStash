@@ -86,7 +86,7 @@ fn has_removed_lines(prev_changes: &Vec<LineDifference>, line_count: usize) -> b
 
 fn unique_prev_changes(prev_changes: &Vec<LineDifference>) -> Vec<LineDifference> {
     prev_changes
-        .into_iter()
+        .iter()
         .sorted_by(|a, b| sort(b.date_time.as_str(), a.date_time.as_str()))
         .dedup_by(|a, b| a.line_number.eq(&b.line_number))
         .sorted_by(|a, b| sort(a.date_time.as_str(), b.date_time.as_str()))
