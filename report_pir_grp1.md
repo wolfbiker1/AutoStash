@@ -3,6 +3,7 @@ Die Grundidee ist, dass der Datenfluss bidirektional abläuft. Das heißt im Kon
 Die Programmstruktur ist gesplittet in Front- und Backend. Das heißt, dass sämtliche Logik- und Datenspeicherungselemente im Hintergrund passieren und das Backend entsprechende APIs bereitstellt, um die resultierenden Daten abholen zu koennen. Im Frontend, welches mit dem Tui-Rs Crate umgesetzt ist, bedient sich dabei ausschließlich dieser APIs und stellt dabei keine eigenen Berechnungen an.
 Davon ausgenommen sind Formatkonvertierungen, um das resultierende Ergebnis von der Rust-internen Datenstruktur auf die Datenstruktur umzubauen, welche für die Darstellung in der TUI benötigt wird.
 # Umsetzung
+foo
 
 # Probleme und Schwierigkeiten
 Ein Problem war unter anderem, die Kommunikation zwischen Backend und Frontend herzustellen. Um eine saubere Lösung zu bekommen, wurde hier auf Channels zurückgegriffen. Allerdings hat dies zu dem Problem geführt, da ein Listener-Channel in einem eigenen Thread laufen muss. Dies ist in Rust nicht ohne Weiteres umzusetzen, da dieses Modul nicht sicher unter Threads geteilt werden kann. ....
