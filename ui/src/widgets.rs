@@ -56,7 +56,7 @@ pub mod widgets {
             let chunks = Layout::default()
                 .constraints(
                     [
-                        Constraint::Length(9),
+                        Constraint::Length(30),
                         Constraint::Min(8),
                         Constraint::Length(7),
                         Constraint::Percentage(1),
@@ -77,8 +77,8 @@ pub mod widgets {
                 .constraints(
                     [
                         Constraint::Length(2),
-                        Constraint::Length(3),
-                        Constraint::Length(1),
+                        // Constraint::Length(3),
+                        // Constraint::Length(1),
                     ]
                     .as_ref(),
                 )
