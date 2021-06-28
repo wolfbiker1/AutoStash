@@ -1,0 +1,3 @@
+# Datenfluss
+Die Grundidee ist, dass der Datenfluss bidirektional abläuft. Das heißt im Konkreten, dass sowohl Daten in das Programm eingehen und den Text der Datei einlesen. Ebenso generiert das Programm Daten, indem beim Wiederherstellen einer Version eine neue Datei angelegt wird bzw. ueberschrieben wird. Innerhalb der Routine werden diese Angaben jedoch nicht geändert, sondern lediglich fragmentarisch in ihrer ursprünglichen Form zwischengespeichert. So betrachtet liefert das Tool eine Ein- und Ausgabe, ohne dabei jedoch Modifikationen an den bereitgestellten Informationen vorzunehmen.
+# Probleme und Schwierigkeiten
