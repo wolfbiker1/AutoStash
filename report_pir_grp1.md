@@ -1,3 +1,8 @@
-# Datenfluss
+# Datenfluss und Struktur
 Die Grundidee ist, dass der Datenfluss bidirektional abläuft. Das heißt im Konkreten, dass sowohl Daten in das Programm eingehen und den Text der Datei einlesen. Ebenso generiert das Programm Daten, indem beim Wiederherstellen einer Version eine neue Datei angelegt wird bzw. ueberschrieben wird. Innerhalb der Routine werden diese Angaben jedoch nicht geändert, sondern lediglich fragmentarisch in ihrer ursprünglichen Form zwischengespeichert. So betrachtet liefert das Tool eine Ein- und Ausgabe, ohne dabei jedoch Modifikationen an den bereitgestellten Informationen vorzunehmen.
+Die Programmstruktur ist gesplittet in Front- und Backend. Das heißt, dass sämtliche Logik- und Datenspeicherungselemente im Hintergrund passieren und das Backend entsprechende APIs bereitstellt, um die resultierenden Daten abholen zu koennen. Im Frontend, welches mit dem Tui-Rs Crate umgesetzt ist, bedient sich dabei ausschließlich dieser APIs und stellt dabei keine eigenen Berechnungen an.
+Davon ausgenommen sind Formatkonvertierungen, um das resultierende Ergebnis von der Rust-internen Datenstruktur auf die Datenstruktur umzubauen, welche für die Darstellung in der TUI benötigt wird.
+# Umsetzung
+
 # Probleme und Schwierigkeiten
+Ein Problem war unter anderem, die Kommunikation zwischen Backend und Frontend herzustellen. Um eine saubere Lösung zu bekommen, wurde hier auf Channels zurückgegriffen. Allerdings hat dies zu dem Problem geführt, da ein Listener-Channel in einem eigenen Thread laufen muss. Dies ist in Rust nicht ohne Weiteres umzusetzen, da dieses Modul nicht sicher unter Threads geteilt werden kann. ....
