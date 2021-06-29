@@ -27,7 +27,7 @@ pub mod store {
         pub changes: Vec<LineDifference>,
     }
 
-    #[derive(Debug)]
+    #[derive(Clone, Debug)]
     pub struct FileVersions {
         pub path: String,
         pub versions: Vec<Version>,
@@ -206,7 +206,7 @@ pub mod store {
             self.redo(path, count)
         }
 
-        pub fn view(&mut self) -> Result<Vec<FileVersions>, Box<dyn error::Error>> {
+        pub fn view(&mut self) -> Result<Vec<Option<FileVersions>>, Box<dyn error::Error>> {
             let now = Utc::now().naive_utc();
 
             Ok(self
@@ -214,24 +214,33 @@ pub mod store {
                 .liter(FILE_VERSION_STACK)
                 .map(|version_stack| {
                     let version_stack: VersionStack = version_stack.get_item().unwrap();
-                    VersionStack {
-                        timestamps: version_stack
-                            .timestamps
-                            .iter()
-                            .filter(|timestamp| {
-                                now.timestamp() - self.time_frame.value() < *timestamp.clone()
-                            })
-                            .map(|timestamp| timestamp.clone())
-                            .collect_vec(),
-                        path: version_stack.path,
+                    let timestamps = version_stack
+                        .timestamps
+                        .iter()
+                        .filter(|timestamp| {
+                            now.timestamp() - self.time_frame.value() < *timestamp.clone()
+                        })
+                        .map(|timestamp| timestamp.clone())
+                        .collect_vec();
+
+                    if timestamps.is_empty() {
+                        return None;
                     }
+                    Some(VersionStack {
+                        timestamps,
+                        path: version_stack.path,
+                    })
                 })
-                .map(|mut version_stack| -> FileVersions {
+                .map(|version_stack| -> Option<FileVersions> {
+                    if version_stack.is_none() {
+                        return None;
+                    }
+                    let mut version_stack = version_stack.unwrap();
                     let path = version_stack.clone().path;
                     version_stack.timestamps.push(0);
                     let versions = self.get_versions(version_stack);
 
-                    FileVersions { path, versions }
+                    Some(FileVersions { path, versions })
                 })
                 .collect_vec())
         }
@@ -248,7 +257,7 @@ pub mod store {
                             .sorted_by(|a, b| {
                                 diff::sort(b.date_time.as_str(), a.date_time.as_str())
                             })
-                            .take_while(|e| {
+                            .filter(|e| {
                                 let diff_timestamp = NaiveDateTime::parse_from_str(
                                     e.date_time.as_str(),
                                     diff::RFC3339,
@@ -310,7 +319,6 @@ pub mod store {
                 .map(|version_marker| version_marker.get_item().unwrap())
         }
 
-        // TODO
         fn undo(&mut self, path: String, count: usize) -> Result<(), Box<dyn error::Error>> {
             let versions = self.peek_versions(path.clone(), count, true);
             let version_marker: VersionMarker = self.get_version_marker(path.to_string()).unwrap();

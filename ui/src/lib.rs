@@ -64,21 +64,23 @@ fn listen_to_key_press(ui: Arc<Mutex<UI>>, tick_rate: Duration) -> JoinHandle<()
 }
 
 fn on_versions(ui: Arc<Mutex<UI>>) -> JoinHandle<()> {
-    thread::spawn(move || {
-        loop {
-            let mut ui = ui.lock();
-            if let Ok(res) = ui.communication.on_file_versions.try_recv() {
-                    ui.state.file_versions = res;
-                    let state = &mut ui.state;
-                    state.filenames.flush_display();
-                    for r in &state.file_versions {
-                        state.filenames.add_item(r.path.clone());
-                    }
-                    ui.state.update_pane_content();
-            }
-            if ui.communication.on_quit.try_recv().is_ok() {
-                break;
-            }
+    thread::spawn(move || loop {
+        let mut ui = ui.lock();
+        if let Ok(res) = ui.communication.on_file_versions.try_recv() {
+            ui.state.file_versions = res.clone();
+            let state = &mut ui.state;
+            state.filenames.flush_display();
+            res.iter()
+                .filter(|file_versions| file_versions.is_some())
+                .for_each(|file_versions| {
+                    state
+                        .filenames
+                        .add_item(file_versions.as_ref().unwrap().path.clone());
+                });
+            ui.state.update_pane_content();
+        }
+        if ui.communication.on_quit.try_recv().is_ok() {
+            break;
         }
     })
 }
@@ -114,42 +116,42 @@ fn on_key(ui: Arc<Mutex<UI>>) -> JoinHandle<()> {
     thread::spawn(move || {
         loop {
             let mut ui = ui.lock();
-            
+
             if let Ok(ev) = ui.communication.on_key.try_recv() {
                 match ev {
-                        Event::Input(ev) => match ev.code {
-                            KeyCode::Char(c) => {
-                                ui.state.on_key(c);
-                            }
-                            // TODO
-                            KeyCode::Esc => {
-                                let selected_path = ui.state.path_of_selected_file.clone();
-                                ui.communication.on_undo(selected_path, 1);
-                            }
-                            // TODO
-                            KeyCode::Tab => {
-                                let selected_path = ui.state.path_of_selected_file.clone();
-                                ui.communication.on_redo(selected_path, 1);
-                            }
-                            KeyCode::Up => {
-                                ui.state.on_up();
-                            }
-                            KeyCode::Down => {
-                                ui.state.on_down();
-                            }
-                            KeyCode::Left => {
-                                ui.state.on_left();
-                                let current_id = ui.state.tabs.get_index();
-                                ui.communication.on_timeslice_change(current_id);
-                            }
-                            KeyCode::Right => {
-                                ui.state.on_right();
-                                let current_id = ui.state.tabs.get_index();
-                                ui.communication.on_timeslice_change(current_id);
-                            }
-                            _ => {}
-                        },
-                        Event::Tick => {}
+                    Event::Input(ev) => match ev.code {
+                        KeyCode::Char(c) => {
+                            ui.state.on_key(c);
+                        }
+                        // TODO
+                        KeyCode::Esc => {
+                            let selected_path = ui.state.path_of_selected_file.clone();
+                            ui.communication.on_undo(selected_path, 1);
+                        }
+                        // TODO
+                        KeyCode::Tab => {
+                            let selected_path = ui.state.path_of_selected_file.clone();
+                            ui.communication.on_redo(selected_path, 1);
+                        }
+                        KeyCode::Up => {
+                            ui.state.on_up();
+                        }
+                        KeyCode::Down => {
+                            ui.state.on_down();
+                        }
+                        KeyCode::Left => {
+                            ui.state.on_left();
+                            let current_id = ui.state.tabs.get_index();
+                            ui.communication.on_timeslice_change(current_id);
+                        }
+                        KeyCode::Right => {
+                            ui.state.on_right();
+                            let current_id = ui.state.tabs.get_index();
+                            ui.communication.on_timeslice_change(current_id);
+                        }
+                        _ => {}
+                    },
+                    Event::Tick => {}
                 }
             }
             if ui.communication.on_quit.try_recv().is_ok() {
@@ -171,11 +173,11 @@ fn quit(mut terminal: Terminal<CrosstermBackend<Stdout>>) -> Result<(), Box<dyn 
     Ok(())
 }
 
-/// 
-/// sets up crossterm - terminal, inits event listeners, 
+///
+/// sets up crossterm - terminal, inits event listeners,
 /// starts the rx-listeners, draws the terminal
-/// in an infinite loop 
-/// 
+/// in an infinite loop
+///
 pub fn run(ui: UI) -> Result<(), Box<dyn Error>> {
     let terminal = init_terminal()?;
     let tick_rate = Duration::from_millis(300);

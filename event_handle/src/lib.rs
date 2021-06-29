@@ -16,7 +16,7 @@ pub mod event_handle {
     }
 
     pub struct EventHandleCommunication {
-        pub file_versions_to_ui: Sender<Vec<FileVersions>>,
+        pub file_versions_to_ui: Sender<Vec<Option<FileVersions>>>,
         pub on_undo: Receiver<(String, usize)>,
         pub on_redo: Receiver<(String, usize)>,
         pub on_time_frame_change: Receiver<TimeFrame>,
@@ -24,6 +24,7 @@ pub mod event_handle {
 
     fn transmit_file_versions(event_handle: &EventHandle) {
         let view = event_handle.store.lock().unwrap().view().unwrap();
+
         event_handle
             .communication
             .file_versions_to_ui
@@ -138,8 +139,10 @@ pub mod event_handle {
             stored
         }
         
-        // TODO
-        fn on_file_remove(&self, _event: &DebouncedEvent) {}
+
+        fn on_file_remove(&self, _event: &DebouncedEvent) {
+
+        }
 
         fn is_modification(&self, event: &DebouncedEvent) -> bool {
             if let DebouncedEvent::Write(_) = event {

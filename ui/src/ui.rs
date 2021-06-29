@@ -12,7 +12,7 @@ use tui::text::Spans;
 /// are used for backend - frontend communication
 /// 
 pub struct UICommunication {
-    pub on_file_versions: Receiver<Vec<FileVersions>>,
+    pub on_file_versions: Receiver<Vec<Option<FileVersions>>>,
     pub on_key: Receiver<Event<KeyEvent>>,
     pub on_quit: Receiver<()>,
     pub undo_to_handle: Sender<(String, usize)>,
@@ -78,9 +78,8 @@ pub struct UIConfig {
 /// snapshots, ...
 /// 
 pub struct UIState {
-    pub file_versions: Vec<FileVersions>,
+    pub file_versions: Vec<Option<FileVersions>>,
     pub filenames: StatefulList<String>,
-    pub all_versions: Vec<FileVersions>,
     pub snapshots: StatefulList<String>,
     pub available_versions: Vec<String>,
     pub tabs: TabsState,
@@ -104,6 +103,10 @@ impl UIState {
                 self.id_of_selected_file = i;
         }
         let versions_for_selected_file = &self.file_versions[self.id_of_selected_file as usize];
+        if versions_for_selected_file.is_none() {
+            return;
+        }
+        let versions_for_selected_file = versions_for_selected_file.as_ref().unwrap();
         self.path_of_selected_file = versions_for_selected_file.path.clone();
         for v in &versions_for_selected_file.versions {
             self.snapshots.add_item(v.datetime.to_string());
@@ -114,7 +117,10 @@ impl UIState {
     /// 
     pub fn update_snapshot_pane(&mut self) {
         let selected_file = &self.file_versions[self.id_of_selected_file];
-
+        if selected_file.is_none() {
+            return;
+        }
+        let selected_file = selected_file.as_ref().unwrap();
         if !selected_file.versions.is_empty() {
             if let Some(i) = self.snapshots.get_index() {
                     let selected_version = &selected_file.versions[i];
@@ -236,7 +242,6 @@ impl UI {
                 snapshots: StatefulList::with_items(vec![]),
                 filenames: StatefulList::with_items(vec![String::from("loading...")]),
                 available_versions: Vec::new(),
-                all_versions: Vec::new(),
                 processed_diffs: Vec::new(),
                 new_version: Vec::new(),
                 path_of_selected_file: String::new(),
