@@ -133,10 +133,12 @@ pub mod event_handle {
             let changes = diff::find(path, &changes)?;
             let stored = store.store_changes(path, &changes);
             let _view = store.view()?;
+            self.communication.file_versions_to_ui.send(_view)?;
 
             stored
         }
-
+        
+        // TODO
         fn on_file_remove(&self, _event: &DebouncedEvent) {}
 
         fn is_modification(&self, event: &DebouncedEvent) -> bool {

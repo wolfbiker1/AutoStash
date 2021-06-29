@@ -113,10 +113,9 @@ pub mod store {
     }
 
     fn init_file_version_marker(path: String, db: &mut PickleDb) {
-        //let now = Utc::now().naive_utc().timestamp();
         let version_marker = VersionMarker {
             path,
-            timestamp_marker: 0,
+            timestamp_marker: 1,
         };
 
         db.ladd(FILE_VERSION_MARKER, &version_marker);
@@ -227,8 +226,9 @@ pub mod store {
                         path: version_stack.path,
                     }
                 })
-                .map(|version_stack| -> FileVersions {
+                .map(|mut version_stack| -> FileVersions {
                     let path = version_stack.clone().path;
+                    version_stack.timestamps.push(0);
                     let versions = self.get_versions(version_stack);
 
                     FileVersions { path, versions }
@@ -237,26 +237,63 @@ pub mod store {
         }
 
         fn get_versions(&self, version_stack: VersionStack) -> Vec<Version> {
+            if version_stack.timestamps.len() == 1 {
+                return version_stack
+                    .timestamps
+                    .iter()
+                    .map(|timestamp| {
+                        let changes: Vec<LineDifference> = self
+                            .get_file_changes::<LineDifference>(version_stack.path.as_str())
+                            .iter()
+                            .sorted_by(|a, b| {
+                                diff::sort(b.date_time.as_str(), a.date_time.as_str())
+                            })
+                            .take_while(|e| {
+                                let diff_timestamp = NaiveDateTime::parse_from_str(
+                                    e.date_time.as_str(),
+                                    diff::RFC3339,
+                                )
+                                .unwrap()
+                                .timestamp();
+
+                                diff_timestamp >= timestamp.clone()
+                            })
+                            .map(|e| e.clone())
+                            .collect_vec();
+
+                        Version {
+                            datetime: NaiveDateTime::from_timestamp(timestamp.clone(), 0),
+                            changes,
+                        }
+                    })
+                    .collect_vec();
+            }
+
             version_stack
                 .timestamps
                 .iter()
-                .map(|timestamp| {
-                    let changes: Vec<LineDifference> = self
+                .sorted_by(|a, b| Ord::cmp(b, a))
+                .collect_vec()
+                .windows(2)
+                .map(|diff_pairs| {
+                    let changes = self
                         .get_file_changes::<LineDifference>(version_stack.path.as_str())
                         .iter()
                         .sorted_by(|a, b| diff::sort(b.date_time.as_str(), a.date_time.as_str()))
-                        .take_while(|e| {
-                            let datetime =
+                        .filter(|e| {
+                            let diff_timestamp =
                                 NaiveDateTime::parse_from_str(e.date_time.as_str(), diff::RFC3339)
-                                    .unwrap();
+                                    .unwrap()
+                                    .timestamp();
 
-                            datetime.timestamp() >= timestamp.clone()
+                            diff_timestamp <= diff_pairs[0].clone()
+                                && diff_timestamp > *diff_pairs[1]
                         })
                         .map(|e| e.clone())
                         .collect_vec();
 
                     Version {
-                        datetime: NaiveDateTime::from_timestamp(timestamp.clone(), 0),
+                        datetime: NaiveDateTime::from_timestamp(diff_pairs[0].clone(), 0),
                         changes,
                     }
                 })
@@ -359,23 +396,26 @@ pub mod store {
 
         fn undo_changes(&self, changes: &Vec<LineDifference>) -> Result<(), Box<dyn error::Error>> {
             let path = changes.first().unwrap().path.clone();
-            let file = File::open(path.clone())?;
-            let undone_lines: Vec<String> = io::BufReader::new(file)
-                .lines()
-                .map(|l| l.unwrap())
-                .enumerate()
-                .map(|(index, line)| {
-                    let found = changes.iter().find(|l| l.line_number.eq(&index));
-                    if found.is_some() {
-                        let found = found.unwrap();
-                        return found.line.clone();
-                    }
-                    line
-                })
-                .collect();
 
-            let mut file = File::open(path.clone())?;
-            file.write_all(undone_lines.join("").as_bytes())
+            let undone_lines: Vec<String> = {
+                let file = File::open(&path)?;
+                io::BufReader::new(file)
+                    .lines()
+                    .map(|l| l.unwrap())
+                    .enumerate()
+                    .map(|(index, line)| {
+                        let found = changes.iter().find(|l| l.line_number.eq(&index));
+                        if found.is_some() {
+                            let found = found.unwrap();
+                            return found.line.clone();
+                        }
+                        line
+                    })
+                    .collect()
+            };
+
+            let mut file = File::create(path.clone())?;
+            file.write_all(undone_lines.join("\n").as_bytes())
                 .map_err(|err| err.into())
         }
 
@@ -390,7 +430,7 @@ pub mod store {
         fn redo_changes(&self, changes: &Vec<LineDifference>) -> Result<(), Box<dyn error::Error>> {
             let path = changes.first().unwrap().path.clone();
             let file = File::open(path.clone())?;
-            let undone_lines: Vec<String> = io::BufReader::new(file)
+            let redone_lines: Vec<String> = io::BufReader::new(file)
                 .lines()
                 .map(|l| l.unwrap())
                 .enumerate()
@@ -404,8 +444,8 @@ pub mod store {
                 })
                 .collect();
 
-            let mut file = File::open(path)?;
-            file.write_all(undone_lines.join("").as_bytes())
+            let mut file = File::create(path.clone())?;
+            file.write_all(redone_lines.join("").as_bytes())
                 .map_err(|err| err.into())
         }
     }
