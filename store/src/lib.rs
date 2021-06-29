@@ -340,7 +340,7 @@ pub mod store {
             let version_marker: VersionMarker = self.get_version_marker(path.to_string()).unwrap();
 
             self.increment_version_marker_by(version_marker, count);
-            self.redo_versions(versions)
+            self.undo_versions(versions)
         }
 
         pub fn get_file_changes<T: DeserializeOwned + std::fmt::Debug>(
@@ -396,12 +396,23 @@ pub mod store {
 
         fn undo_changes(&self, changes: &Vec<LineDifference>) -> Result<(), Box<dyn error::Error>> {
             let path = changes.first().unwrap().path.clone();
+            let file = File::open(path.clone())?;
+            let lines = io::BufReader::new(file).lines().collect_vec();
+            let mut redone_lines: Vec<String> = vec![];
 
-            let undone_lines: Vec<String> = {
-                let file = File::open(&path)?;
-                io::BufReader::new(file)
-                    .lines()
-                    .map(|l| l.unwrap())
+            if lines.len() == 0 {
+                redone_lines.push(
+                    changes
+                        .iter()
+                        .find(|l| l.line_number.eq(&0))
+                        .unwrap()
+                        .line
+                        .clone(),
+                );
+            } else {
+                redone_lines = lines
+                    .iter()
+                    .map(|l| l.as_ref().unwrap())
                     .enumerate()
                     .map(|(index, line)| {
                         let found = changes.iter().find(|l| l.line_number.eq(&index));
@@ -409,43 +420,13 @@ pub mod store {
                             let found = found.unwrap();
                             return found.line.clone();
                         }
-                        line
+                        line.clone()
                     })
-                    .collect()
-            };
+                    .collect();
+            }
 
             let mut file = File::create(path.clone())?;
-            file.write_all(undone_lines.join("\n").as_bytes())
-                .map_err(|err| err.into())
-        }
-
-        fn redo_versions(&self, versions: Vec<Version>) -> Result<(), Box<dyn error::Error>> {
-            versions.iter().for_each(|version| {
-                // TODO: propagate error
-                self.redo_changes(&version.changes).unwrap()
-            });
-            Ok(())
-        }
-
-        fn redo_changes(&self, changes: &Vec<LineDifference>) -> Result<(), Box<dyn error::Error>> {
-            let path = changes.first().unwrap().path.clone();
-            let file = File::open(path.clone())?;
-            let redone_lines: Vec<String> = io::BufReader::new(file)
-                .lines()
-                .map(|l| l.unwrap())
-                .enumerate()
-                .map(|(index, line)| {
-                    let found = changes.iter().find(|l| l.line_number.eq(&index));
-                    if found.is_some() {
-                        let found = found.unwrap();
-                        return found.changed_line.clone();
-                    }
-                    line
-                })
-                .collect();
-
-            let mut file = File::create(path.clone())?;
-            file.write_all(redone_lines.join("").as_bytes())
+            file.write_all(redone_lines.join("\n").as_bytes())
                 .map_err(|err| err.into())
         }
     }
