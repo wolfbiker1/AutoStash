@@ -8,3 +8,4 @@ edition = "2018"
 store = { path = "../store" }
 diff = { path = "../diff" }
 notify = "4.0.12"
+flume = "0.10.7"

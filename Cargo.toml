@@ -3,6 +3,8 @@
 members = [
 	"filewatch",
 	"auto_stash",
-	"diff_track"
+	"diff",
+	"store",
+	"ui"
 ]
 

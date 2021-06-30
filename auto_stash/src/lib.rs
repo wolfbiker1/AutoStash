@@ -1,39 +1,9 @@
-use std::time::Duration;
-
-use event_handle::event_handle::EventHandle;
-use filewatch::FileWatch;
-use store::store::Store;
-
-pub struct AutoStash {
-    watch_path: String,
-    watch: FileWatch,
-}
-
-impl AutoStash {
-    pub fn new(config: &Config) -> Result<AutoStash, Box<dyn std::error::Error>> {
-        let store = Store::new(config.store_path.as_str(), config.watch_path.as_str())?;
-        let event_handle = EventHandle::new(store);
-        let watch = FileWatch::new(config.debounce_time, event_handle)?;
-
-        Ok(AutoStash {
-            watch,
-            watch_path: config.watch_path.clone(),
-        })
-    }
-
-    pub fn run(&mut self) -> Result<(), String> {
-        self.watch.start_watching(self.watch_path.as_str())
-    }
-}
-
 #[derive(Clone)]
 pub struct Config {
     pub store_path: String,
     pub watch_path: String,
     pub debounce_time: Duration,
 }
-
-use std::env;
 
 impl Config {
     pub fn new(mut args: env::Args) -> Result<Config, &'static str> {
@@ -62,5 +32,41 @@ impl Config {
             watch_path,
             debounce_time: Duration::from_millis(debounce_time),
         })
+    }
+}
+
+use std::{env, time::Duration};
+use flume;
+
+use event_handle::event_handle::{EventHandle, EventHandleCommunication};
+use filewatch::FileWatch;
+use store::store::Store;
+
+pub struct AutoStash {
+    pub watch_path: String,
+    pub watch: FileWatch,
+}
+
+impl AutoStash {
+    pub fn new(
+        config: &Config,
+        communication: EventHandleCommunication,
+        on_quit: flume::Receiver<()>,
+    ) -> Result<AutoStash, Box<dyn std::error::Error>> {
+        let store = Store::new(config.store_path.as_str(), config.watch_path.as_str())?;
+
+        let mut event_handle = EventHandle::new(store, communication);
+        event_handle.init_file_versions();
+        event_handle.on_redo();
+        event_handle.on_undo();
+        let watch = FileWatch::new(config.debounce_time, event_handle, on_quit)?;
+
+        Ok(AutoStash {
+            watch,
+            watch_path: config.watch_path.clone(),
+        })
+    }
+    pub fn run(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        self.watch.start_watching(self.watch_path.as_str())
     }
 }
