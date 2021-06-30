@@ -73,7 +73,12 @@ pub mod store {
         }
     }
 
-    fn init(store_path: &str, watch_path: &str) -> Result<PickleDb, Box<dyn error::Error>> {
+    fn init(
+        store_path: &str,
+        watch_path: &str,
+        excluded_files: Vec<String>,
+        excluded_paths: Vec<String>,
+    ) -> Result<PickleDb, Box<dyn error::Error>> {
         let mut db = PickleDb::new(
             store_path,
             PickleDbDumpPolicy::AutoDump,
@@ -81,7 +86,7 @@ pub mod store {
         );
 
         create_stack(&mut db)?;
-        init_store(watch_path, &mut db)?;
+        init_store(watch_path, &mut db, excluded_files, excluded_paths)?;
 
         Ok(db)
     }
@@ -112,12 +117,17 @@ pub mod store {
             .collect_vec()
     }
 
-    fn init_store(watch_path: &str, db: &mut PickleDb) -> Result<(), Box<dyn error::Error>> {
+    fn init_store(
+        watch_path: &str,
+        db: &mut PickleDb,
+        excluded_files: Vec<String>,
+        excluded_paths: Vec<String>,
+    ) -> Result<(), Box<dyn error::Error>> {
         WalkDir::new(watch_path)
             .into_iter()
             .filter(|entry| match entry {
-                Ok(entry) => entry.path().is_file(),
-                _ => true,
+                Ok(entry) => is_not_excluded(entry, &excluded_files, &excluded_paths),
+                _ => false,
             })
             .map(
                 |entry: Result<DirEntry, walkdir::Error>| -> Result<(), Box<dyn error::Error>> {
@@ -132,6 +142,26 @@ pub mod store {
             )
             .find(|e| e.is_err())
             .unwrap_or_else(|| Ok(()))
+    }
+
+    fn is_not_excluded(
+        entry: &DirEntry,
+        excluded_files: &Vec<String>,
+        excluded_paths: &Vec<String>,
+    ) -> bool {
+        entry.path().is_file()
+            && !excluded_files.contains(
+                &entry
+                    .path()
+                    .file_name()
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+                    .to_string(),
+            )
+            && excluded_paths
+                .iter()
+                .all(|p| !entry.path().parent().unwrap().ends_with(p))
     }
 
     fn init_file_version_stack(path: String, db: &mut PickleDb) {
@@ -178,10 +208,15 @@ pub mod store {
     }
 
     impl Store {
-        pub fn new(store_path: &str, watch_path: &str) -> Result<Store, Box<dyn error::Error>> {
+        pub fn new(
+            store_path: &str,
+            watch_path: &str,
+            excluded_files: Vec<String>,
+            excluded_paths: Vec<String>,
+        ) -> Result<Store, Box<dyn error::Error>> {
             let mut db = load(store_path);
             if db.is_err() {
-                db = init(store_path, watch_path);
+                db = init(store_path, watch_path, excluded_files, excluded_paths);
             }
             let db = db?;
 

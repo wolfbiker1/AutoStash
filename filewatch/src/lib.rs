@@ -61,14 +61,30 @@ impl FileWatch {
         Ok(())
     }
 
-    // TODO exclude paths
     fn handle(&mut self, event: DebouncedEvent) -> Result<(), Box<dyn std::error::Error>> {
         let path = self.to_path(&event)?;
-        if path.is_file() && !self.excluded_files.contains(&path.to_str().unwrap().to_string()) {
+        if self.is_not_excluded(&path) {
             return self.event_handle.handle(event);
         }
 
         Ok(())
+    }
+
+    fn is_not_excluded(&self, path: &PathBuf) -> bool {
+        let is_not_excluded_file = self.is_not_excluded_file(path);
+        let is_not_excluded_path = self.is_not_excluded_path(path);
+        path.is_file() && is_not_excluded_file && is_not_excluded_path
+    }
+
+    fn is_not_excluded_file(&self, path: &PathBuf) -> bool {
+        let file_name = path.file_name().unwrap().to_str().unwrap().to_string();
+        !self.excluded_files.contains(&file_name)
+    }
+
+    fn is_not_excluded_path(&self, path: &PathBuf) -> bool {
+        self.excluded_paths
+            .iter()
+            .all(|p| !path.parent().unwrap().ends_with(p))
     }
 
     fn to_path(&self, event: &DebouncedEvent) -> Result<PathBuf, Box<dyn std::error::Error>> {

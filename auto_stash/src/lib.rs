@@ -39,7 +39,12 @@ impl AutoStash {
         communication: EventHandleCommunication,
         on_quit: flume::Receiver<()>,
     ) -> Result<AutoStash, Box<dyn std::error::Error>> {
-        let store = Store::new(config.store_path.as_str(), config.watch_path.as_str())?;
+        let store = Store::new(
+            config.store_path.as_str(),
+            config.watch_path.as_str(),
+            config.exclude.files.clone(),
+            config.exclude.paths.clone(),
+        )?;
 
         let mut event_handle = EventHandle::new(store, communication);
         event_handle.init_file_versions();
@@ -50,8 +55,8 @@ impl AutoStash {
             Duration::from_millis(config.debounce_time),
             event_handle,
             on_quit,
-            config.exclude.paths.clone(),
             config.exclude.files.clone(),
+            config.exclude.paths.clone(),
         )?;
 
         Ok(AutoStash {
