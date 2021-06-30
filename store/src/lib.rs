@@ -1,6 +1,8 @@
 extern crate simple_error;
 
 pub mod store {
+    use chrono::Datelike;
+    use chrono::NaiveDate;
     use chrono::NaiveDateTime;
     use chrono::Utc;
     use diff::LineDifference;
@@ -31,6 +33,7 @@ pub mod store {
     pub struct FileVersions {
         pub path: String,
         pub versions: Vec<Version>,
+        pub hits_of_codes: Vec<HitsOfCode>,
     }
 
     #[derive(Serialize, Deserialize, Clone)]
@@ -52,6 +55,12 @@ pub mod store {
         HOUR,
         DAY,
         WEEK,
+    }
+
+    #[derive(Clone, Debug)]
+    pub struct HitsOfCode {
+        pub date: NaiveDate,
+        pub hits: u64,
     }
 
     impl TimeFrame {
@@ -81,6 +90,27 @@ pub mod store {
     fn create_stack(db: &mut PickleDb) -> Result<(), pickledb::error::Error> {
         db.lcreate(FILE_VERSION_STACK)?;
         db.lcreate(FILE_VERSION_MARKER).map(|_| ())
+    }
+
+    fn hits_of_codes(file_versions: Vec<Version>) -> Vec<HitsOfCode> {
+        file_versions
+            .iter()
+            .map(|version| HitsOfCode {
+                date: version.datetime.date(),
+                hits: version.changes.iter().count() as u64,
+            })
+            .collect_vec()
+            .into_iter()
+            .coalesce(|prev, next| {
+                if prev.date.eq(&next.date) {
+                    return Ok(HitsOfCode {
+                        date: prev.date,
+                        hits: prev.hits + next.hits,
+                    });
+                }
+                Err((prev, next))
+            })
+            .collect_vec()
     }
 
     fn init_store(watch_path: &str, db: &mut PickleDb) -> Result<(), Box<dyn error::Error>> {
@@ -239,8 +269,13 @@ pub mod store {
                     let path = version_stack.clone().path;
                     version_stack.timestamps.push(0);
                     let versions = self.get_versions(version_stack);
+                    let hits_of_codes = hits_of_codes(versions.clone());
 
-                    Some(FileVersions { path, versions })
+                    Some(FileVersions {
+                        path,
+                        versions,
+                        hits_of_codes,
+                    })
                 })
                 .collect_vec())
         }
