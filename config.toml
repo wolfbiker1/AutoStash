@@ -1,8 +1,7 @@
-store_path = "example.db"
-# The watch path has to be absolute! 
-# On Windows doubles back slashes are typically used wheres on linux a single slash.
-watch_path = "D:\\projects\\htwg\\rust\\auto-stash\\test"
-# Debounce time has to be in positive milli seconds!
+store_path = "demo.db"
+# The watch path has to be absolute!
+watch_path = "/home/benni/Coding/Demo"
+# Debounce time has to be in positive milli seconds
 debounce_time = 333
 [exclude]
 # Excluded paths have to be relative!
