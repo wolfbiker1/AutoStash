@@ -1,7 +1,7 @@
 use auto_stash::{AutoStash, Config};
 use event_handle::event_handle::EventHandleCommunication;
 use flume::unbounded;
-use std::{env, process, thread};
+use std::{process, thread};
 use ui::ui::{UICommunication, UI};
 
 fn main() {
