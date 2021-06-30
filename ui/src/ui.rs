@@ -152,6 +152,7 @@ impl UIState {
                     let diffs_for_this_version = &selected_version.changes;
                     self.processed_diffs.clear();
                     self.processed_diffs = process_new_version(diffs_for_this_version.clone());
+                    self.processed_diffs.reverse();
             }
         }
     }
