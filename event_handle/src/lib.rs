@@ -90,7 +90,7 @@ pub mod event_handle {
             let path = self.to_path(&event)?;
             if path.is_file() {
                 self.on_modification(&event)?;
-                self.on_removal(&event);
+                self.on_removal(&event)?;
             }
             Ok(())
         }
@@ -105,10 +105,12 @@ pub mod event_handle {
             Ok(())
         }
 
-        fn on_removal(&self, event: &DebouncedEvent) {
+        fn on_removal(&self, event: &DebouncedEvent) -> Result<(), Box<dyn std::error::Error>> {
             if self.is_removed(&event) {
-                self.on_file_remove(&event);
+                self.on_file_remove(&event)?;
             }
+
+            Ok(())
         }
 
         fn to_path(&self, event: &DebouncedEvent) -> Result<PathBuf, Box<dyn std::error::Error>> {
@@ -140,8 +142,26 @@ pub mod event_handle {
         }
         
 
-        fn on_file_remove(&self, _event: &DebouncedEvent) {
+        fn on_file_remove(&self, event: &DebouncedEvent) -> Result<(), Box<dyn std::error::Error>> {
+            let path = self.to_path(event).unwrap();
+            let path = path.as_path().to_str().unwrap();
 
+            let mut store = self.store.lock().unwrap();
+
+            let changes = store.get_file_changes::<LineDifference>(path);
+            let changes = changes.iter().map(|change| {
+                LineDifference::new(
+                    path.to_string(),
+                    change.line_number,
+                    change.changed_line.to_string(),
+                    "".to_string(),
+                )
+            }).collect();
+            let stored = store.store_changes(path, &changes);
+            let _view = store.view()?;
+            self.communication.file_versions_to_ui.send(_view)?;
+
+            stored
         }
 
         fn is_modification(&self, event: &DebouncedEvent) -> bool {
