@@ -50,6 +50,8 @@ impl AutoStash {
             Duration::from_millis(config.debounce_time),
             event_handle,
             on_quit,
+            config.exclude.paths.clone(),
+            config.exclude.files.clone(),
         )?;
 
         Ok(AutoStash {
