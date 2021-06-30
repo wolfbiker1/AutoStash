@@ -361,13 +361,13 @@ pub mod widgets {
                     )
                     .y_axis(
                         Axis::default()
-                            // .title("Hits-of-code * 10000")
+                            // .title("Hits-of-code")
                             .style(
                                 Style::default()
                                     .add_modifier(Modifier::DIM)
                                     .fg(IS_LIGHT_WITE),
                             )
-                            .bounds([0.0, 100.0])
+                            .bounds([0.0, self.state.y_scale_of_graph])
                             .labels(vec![
                                 Span::styled(
                                     "0",
@@ -376,7 +376,7 @@ pub mod widgets {
                                         .add_modifier(Modifier::DIM),
                                 ),
                                 Span::styled(
-                                    "Max",
+                                    self.state.y_scale_of_graph.to_string(),
                                     Style::default()
                                         .fg(IS_LIGHT_WITE)
                                         .add_modifier(Modifier::DIM),

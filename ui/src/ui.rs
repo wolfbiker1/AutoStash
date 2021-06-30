@@ -8,7 +8,6 @@ use store::store::{FileVersions, TimeFrame, HitsOfCode};
 use tui::text::Spans;
 
 static GRAPH_X_WIDTH: usize = 100;
-static Y_SCALE_FACTOR: usize = 100;
 ///
 /// contains channel pairs (tx & rx) which 
 /// are used for backend - frontend communication
@@ -85,6 +84,7 @@ pub struct UIState {
     pub snapshots: StatefulList<String>,
     pub available_versions: Vec<String>,
     pub hits_of_codes_data: Vec<(f64, f64)>,
+    pub y_scale_of_graph: f64,
     pub tabs: TabsState,
     pub pane_ptr: i8,
     pub id_of_selected_file: usize,
@@ -118,18 +118,25 @@ impl UIState {
 
         // temporary solution: better shift into own function
         let hits_of_code = versions_for_selected_file.hits_of_codes.clone();
+        self.y_scale_of_graph = hits_of_code.len() as f64;
         self.hits_of_codes_data.clear();
         if hits_of_code.len() < GRAPH_X_WIDTH {
             for (x, y) in hits_of_code.iter().enumerate() {
-                self.hits_of_codes_data.push((x as f64, y.hits as f64 / Y_SCALE_FACTOR as f64));
-                // println!("push: {:?}", (x as f64, y.hits as f64));
+                self.hits_of_codes_data.push((x as f64, y.hits as f64));
+
+                if y.hits as f64 > self.y_scale_of_graph {
+                    self.y_scale_of_graph = y.hits as f64;
+                }
             }
         } else {
             let scale_factor: f64 = GRAPH_X_WIDTH as f64 / hits_of_code.len() as f64;
             let mut x: f64 = 0.0;
             for y in hits_of_code.iter() {
-                self.hits_of_codes_data.push((x, y.hits as f64 / Y_SCALE_FACTOR as f64));
+                self.hits_of_codes_data.push((x, y.hits as f64));
                 x += scale_factor;
+                if y.hits as f64 > self.y_scale_of_graph {
+                    self.y_scale_of_graph = y.hits as f64;
+                }
             }   
         }
         self.path_of_selected_file = versions_for_selected_file.path.clone();
@@ -269,6 +276,7 @@ impl UI {
                 filenames: StatefulList::with_items(vec![String::from("loading...")]),
                 hits_of_codes_data: Vec::new(),
                 available_versions: Vec::new(),
+                y_scale_of_graph: 100.0,
                 processed_diffs: Vec::new(),
                 new_version: Vec::new(),
                 path_of_selected_file: String::new(),
