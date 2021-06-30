@@ -8,6 +8,7 @@ use store::store::{FileVersions, TimeFrame, HitsOfCode};
 use tui::text::Spans;
 
 static GRAPH_X_WIDTH: usize = 100;
+static Y_SCALE_FACTOR: usize = 100;
 ///
 /// contains channel pairs (tx & rx) which 
 /// are used for backend - frontend communication
@@ -120,13 +121,14 @@ impl UIState {
         self.hits_of_codes_data.clear();
         if hits_of_code.len() < GRAPH_X_WIDTH {
             for (x, y) in hits_of_code.iter().enumerate() {
-                self.hits_of_codes_data.push((x as f64, y.hits as f64));
+                self.hits_of_codes_data.push((x as f64, y.hits as f64 / Y_SCALE_FACTOR as f64));
+                // println!("push: {:?}", (x as f64, y.hits as f64));
             }
         } else {
             let scale_factor: f64 = GRAPH_X_WIDTH as f64 / hits_of_code.len() as f64;
             let mut x: f64 = 0.0;
             for y in hits_of_code.iter() {
-                self.hits_of_codes_data.push((x, y.hits as f64));
+                self.hits_of_codes_data.push((x, y.hits as f64 / Y_SCALE_FACTOR as f64));
                 x += scale_factor;
             }   
         }

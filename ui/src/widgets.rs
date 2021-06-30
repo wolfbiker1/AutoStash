@@ -350,7 +350,7 @@ pub mod widgets {
                     )
                     .x_axis(
                         Axis::default()
-                            .title("Date")
+                            .title("Time")
                             .style(
                                 Style::default()
                                     .add_modifier(Modifier::DIM)
@@ -376,7 +376,7 @@ pub mod widgets {
                                         .add_modifier(Modifier::DIM),
                                 ),
                                 Span::styled(
-                                    "100",
+                                    "Max",
                                     Style::default()
                                         .fg(IS_LIGHT_WITE)
                                         .add_modifier(Modifier::DIM),
