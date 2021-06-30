@@ -2,12 +2,13 @@ pub mod event_handle {
     use diff::LineDifference;
     use flume::{Receiver, Sender};
     use notify::DebouncedEvent;
+    use store::store::FileVersions;
+    use store::store::TimeFrame;
     use std::path::PathBuf;
     use std::process;
     use std::sync::{Arc, Mutex};
     use std::thread;
     use store::store::Store;
-    use store::store::Version;
 
     pub struct EventHandle {
         store: Arc<Mutex<Store>>,
@@ -15,9 +16,21 @@ pub mod event_handle {
     }
 
     pub struct EventHandleCommunication {
-        pub versions_to_ui: Sender<Vec<Version>>,
-        pub on_undo: Receiver<usize>,
-        pub on_redo: Receiver<usize>,
+        pub file_versions_to_ui: Sender<Vec<FileVersions>>,
+        pub on_undo: Receiver<(String, usize)>,
+        pub on_redo: Receiver<(String, usize)>,
+        pub on_time_frame_change: Receiver<TimeFrame>
+    }
+
+    fn transmit_file_versions(event_handle: &EventHandle) {
+        let view = event_handle.store.lock().unwrap().view().unwrap();
+        event_handle.communication
+            .file_versions_to_ui
+            .send(view)
+            .unwrap_or_else(|err| {
+                eprintln!("Could not transmit data to TUI {:?}", err);
+                process::exit(1);
+            });
     }
 
     impl EventHandle {
@@ -28,23 +41,33 @@ pub mod event_handle {
             }
         }
 
-        pub fn init_versions(&mut self) {
-            let data = self.store.lock().unwrap().view().unwrap();
-            self.communication
-                .versions_to_ui
-                .send(data)
-                .unwrap_or_else(|err| {
-                    eprintln!("Could not transmit data to TUI {:?}", err);
-                    process::exit(1);
+        pub fn init_file_versions(&self) {
+            transmit_file_versions(self);
+        }
+
+        pub fn on_time_frame_change(&mut self) {
+            let communication = self.communication.clone();
+            let store = self.store.clone();
+            thread::spawn(move || loop {
+                let time_frame = communication.on_time_frame_change.recv().unwrap();
+                store.lock().unwrap().change_time_frame(time_frame);
+                transmit_file_versions(&EventHandle {
+                    communication: communication.clone(),
+                    store: store.clone()
                 });
+            });
         }
 
         pub fn on_undo(&mut self) {
             let communication = self.communication.clone();
             let store = self.store.clone();
             thread::spawn(move || loop {
-                let count = communication.on_undo.recv().unwrap();
-                store.lock().unwrap().undo_by(count).unwrap();
+                let (path, count) = communication.on_undo.recv().unwrap();
+                store.lock().unwrap().undo_by(path, count).unwrap();
+                transmit_file_versions(&EventHandle {
+                    communication: communication.clone(),
+                    store: store.clone()
+                });
             });
         }
 
@@ -52,8 +75,12 @@ pub mod event_handle {
             let communication = self.communication.clone();
             let store = self.store.clone();
             thread::spawn(move || loop {
-                let count = communication.on_redo.recv().unwrap();
-                store.lock().unwrap().redo_by(count).unwrap();
+                let (path, count) = communication.on_redo.recv().unwrap();
+                store.lock().unwrap().redo_by(path, count).unwrap();
+                transmit_file_versions(&EventHandle {
+                    communication: communication.clone(),
+                    store: store.clone()
+                });
             });
         }
 
@@ -101,10 +128,13 @@ pub mod event_handle {
 
             let mut store = self.store.lock().unwrap();
 
-            let changes = store
-                .get_changes::<LineDifference>(path);
+            let changes = store.get_file_changes::<LineDifference>(path);
             let changes = diff::find(path, &changes)?;
-            store.store_changes(path, &changes)
+            let stored = store.store_changes(path, &changes);
+            let view = store.view()?;
+            println!("{:?}", view);
+
+            stored
         }
 
         fn on_file_remove(&self, event: &DebouncedEvent) {

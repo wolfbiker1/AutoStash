@@ -5,9 +5,10 @@ use std::{env, process, thread};
 use ui::ui::{UICommunication, UI};
 
 fn main() {
-    let (versions_to_ui, on_versions) = unbounded();
+    let (file_versions_to_ui, on_file_versions) = unbounded();
     let (undo_to_handle, on_undo) = unbounded();
     let (redo_to_handle, on_redo) = unbounded();
+    let (time_frame_change_to_handle, on_time_frame_change) = unbounded();
     let (key_to_ui, on_key) = unbounded();
     let (quit_to_ui, on_quit) = unbounded();
     let (quit_to_handle, on_handle_quit) = unbounded();
@@ -16,8 +17,9 @@ fn main() {
         "".to_string(),
         UICommunication {
             on_key,
-            on_versions,
+            on_file_versions,
             on_quit: on_quit.clone(),
+            time_frame_change_to_handle,
             key_to_ui,
             redo_to_handle,
             undo_to_handle,
@@ -41,9 +43,10 @@ fn main() {
     let mut auto_stash = AutoStash::new(
         &config,
         EventHandleCommunication {
-            versions_to_ui,
+            file_versions_to_ui,
             on_redo,
             on_undo,
+            on_time_frame_change
         },
         on_handle_quit
     )
