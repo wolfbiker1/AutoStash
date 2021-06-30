@@ -35,7 +35,7 @@ fn main() {
         });
     });
 
-    let config = Config::new(env::args()).unwrap_or_else(|err| {
+    let config = Config::new("config.toml".to_string()).unwrap_or_else(|err| {
         eprintln!("Problem parsing arguments: {}", err);
         process::exit(1);
     });

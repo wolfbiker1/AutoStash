@@ -1,6 +1,7 @@
 extern crate notify;
 
 use flume;
+use std::path::PathBuf;
 use std::sync::mpsc::{channel, Receiver};
 use std::time::Duration;
 
@@ -13,12 +14,16 @@ pub struct FileWatch {
     on_event: Receiver<DebouncedEvent>,
     on_quit: flume::Receiver<()>,
     watch_dog: RecommendedWatcher,
+    excluded_files: Vec<String>,
+    excluded_paths: Vec<String>,
 }
 impl FileWatch {
     pub fn new(
         debounce_time: Duration,
         event_handle: EventHandle,
         on_quit: flume::Receiver<()>,
+        excluded_files: Vec<String>,
+        excluded_paths: Vec<String>,
     ) -> Result<FileWatch, Error> {
         let (tx, on_event) = channel();
         let watch_dog = watcher(tx, debounce_time)?;
@@ -27,6 +32,8 @@ impl FileWatch {
             on_event,
             watch_dog,
             on_quit,
+            excluded_files,
+            excluded_paths,
         })
     }
     pub fn start_watching(&mut self, dir: &str) -> Result<(), Box<dyn std::error::Error>> {
@@ -54,7 +61,23 @@ impl FileWatch {
         Ok(())
     }
 
+    // TODO exclude paths
     fn handle(&mut self, event: DebouncedEvent) -> Result<(), Box<dyn std::error::Error>> {
-        self.event_handle.handle(event)
+        let path = self.to_path(&event)?;
+        if path.is_file() && !self.excluded_files.contains(&path.to_str().unwrap().to_string()) {
+            return self.event_handle.handle(event);
+        }
+
+        Ok(())
+    }
+
+    fn to_path(&self, event: &DebouncedEvent) -> Result<PathBuf, Box<dyn std::error::Error>> {
+        match event {
+            DebouncedEvent::Write(p) => Ok(p.clone()),
+            DebouncedEvent::Remove(p) => Ok(p.clone()),
+            DebouncedEvent::NoticeWrite(p) => Ok(p.clone()),
+            DebouncedEvent::Error(e, _) => Err(e.to_string().into()),
+            _ => Err(format!("Event is not handled yet: {:?}", event).into()),
+        }
     }
 }
