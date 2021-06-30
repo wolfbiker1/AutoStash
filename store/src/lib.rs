@@ -1,7 +1,6 @@
 extern crate simple_error;
 
 pub mod store {
-    use chrono::Datelike;
     use chrono::NaiveDate;
     use chrono::NaiveDateTime;
     use chrono::Utc;
