@@ -2,13 +2,13 @@ pub mod event_handle {
     use diff::LineDifference;
     use flume::{Receiver, Sender};
     use notify::DebouncedEvent;
-    use store::store::FileVersions;
-    use store::store::TimeFrame;
     use std::path::PathBuf;
     use std::process;
     use std::sync::{Arc, Mutex};
     use std::thread;
+    use store::store::FileVersions;
     use store::store::Store;
+    use store::store::TimeFrame;
 
     pub struct EventHandle {
         store: Arc<Mutex<Store>>,
@@ -16,15 +16,17 @@ pub mod event_handle {
     }
 
     pub struct EventHandleCommunication {
-        pub file_versions_to_ui: Sender<Vec<FileVersions>>,
+        pub file_versions_to_ui: Sender<Vec<Option<FileVersions>>>,
         pub on_undo: Receiver<(String, usize)>,
         pub on_redo: Receiver<(String, usize)>,
-        pub on_time_frame_change: Receiver<TimeFrame>
+        pub on_time_frame_change: Receiver<TimeFrame>,
     }
 
     fn transmit_file_versions(event_handle: &EventHandle) {
         let view = event_handle.store.lock().unwrap().view().unwrap();
-        event_handle.communication
+
+        event_handle
+            .communication
             .file_versions_to_ui
             .send(view)
             .unwrap_or_else(|err| {
@@ -53,7 +55,7 @@ pub mod event_handle {
                 store.lock().unwrap().change_time_frame(time_frame);
                 transmit_file_versions(&EventHandle {
                     communication: communication.clone(),
-                    store: store.clone()
+                    store: store.clone(),
                 });
             });
         }
@@ -66,7 +68,7 @@ pub mod event_handle {
                 store.lock().unwrap().undo_by(path, count).unwrap();
                 transmit_file_versions(&EventHandle {
                     communication: communication.clone(),
-                    store: store.clone()
+                    store: store.clone(),
                 });
             });
         }
@@ -79,7 +81,7 @@ pub mod event_handle {
                 store.lock().unwrap().redo_by(path, count).unwrap();
                 transmit_file_versions(&EventHandle {
                     communication: communication.clone(),
-                    store: store.clone()
+                    store: store.clone(),
                 });
             });
         }
@@ -88,7 +90,7 @@ pub mod event_handle {
             let path = self.to_path(&event)?;
             if path.is_file() {
                 self.on_modification(&event)?;
-                self.on_removal(&event);
+                self.on_removal(&event)?;
             }
             Ok(())
         }
@@ -103,10 +105,12 @@ pub mod event_handle {
             Ok(())
         }
 
-        fn on_removal(&self, event: &DebouncedEvent) {
+        fn on_removal(&self, event: &DebouncedEvent) -> Result<(), Box<dyn std::error::Error>> {
             if self.is_removed(&event) {
-                self.on_file_remove(&event);
+                self.on_file_remove(&event)?;
             }
+
+            Ok(())
         }
 
         fn to_path(&self, event: &DebouncedEvent) -> Result<PathBuf, Box<dyn std::error::Error>> {
@@ -131,14 +135,33 @@ pub mod event_handle {
             let changes = store.get_file_changes::<LineDifference>(path);
             let changes = diff::find(path, &changes)?;
             let stored = store.store_changes(path, &changes);
-            let view = store.view()?;
-            println!("{:?}", view);
+            let _view = store.view()?;
+            self.communication.file_versions_to_ui.send(_view)?;
 
             stored
         }
+        
 
-        fn on_file_remove(&self, event: &DebouncedEvent) {
-            //println!("File removed: {:?}", event);
+        fn on_file_remove(&self, event: &DebouncedEvent) -> Result<(), Box<dyn std::error::Error>> {
+            let path = self.to_path(event).unwrap();
+            let path = path.as_path().to_str().unwrap();
+
+            let mut store = self.store.lock().unwrap();
+
+            let changes = store.get_file_changes::<LineDifference>(path);
+            let changes: Vec<LineDifference> = changes.iter().map(|change| {
+                LineDifference::new(
+                    path.to_string(),
+                    change.line_number,
+                    change.changed_line.to_string(),
+                    "".to_string(),
+                )
+            }).collect();
+            let stored = store.store_changes(path, &changes);
+            let _view = store.view()?;
+            self.communication.file_versions_to_ui.send(_view)?;
+
+            stored
         }
 
         fn is_modification(&self, event: &DebouncedEvent) -> bool {

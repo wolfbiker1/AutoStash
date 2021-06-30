@@ -1,7 +1,7 @@
 use auto_stash::{AutoStash, Config};
 use event_handle::event_handle::EventHandleCommunication;
 use flume::unbounded;
-use std::{env, process, thread};
+use std::{process, thread};
 use ui::ui::{UICommunication, UI};
 
 fn main() {
@@ -16,15 +16,15 @@ fn main() {
     let ui = UI::new(
         "".to_string(),
         UICommunication {
-            on_key,
             on_file_versions,
-            on_quit: on_quit.clone(),
+            on_key,
+            on_quit,
+            undo_to_handle,
+            redo_to_handle,
             time_frame_change_to_handle,
             key_to_ui,
-            redo_to_handle,
-            undo_to_handle,
             quit_to_ui,
-            quit_to_handle
+            quit_to_handle,
         },
     );
 
@@ -35,7 +35,7 @@ fn main() {
         });
     });
 
-    let config = Config::new(env::args()).unwrap_or_else(|err| {
+    let config = Config::new("config.toml".to_string()).unwrap_or_else(|err| {
         eprintln!("Problem parsing arguments: {}", err);
         process::exit(1);
     });
@@ -44,11 +44,11 @@ fn main() {
         &config,
         EventHandleCommunication {
             file_versions_to_ui,
-            on_redo,
             on_undo,
-            on_time_frame_change
+            on_redo,
+            on_time_frame_change,
         },
-        on_handle_quit
+        on_handle_quit,
     )
     .unwrap_or_else(|err| {
         eprintln!("Problem creating auto stash: {:?}", err);

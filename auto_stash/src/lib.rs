@@ -1,42 +1,28 @@
-#[derive(Clone)]
+use serde::Deserialize;
+use std::error;
+use std::time::Duration;
+
+#[derive(Clone, Deserialize)]
 pub struct Config {
     pub store_path: String,
     pub watch_path: String,
-    pub debounce_time: Duration,
+    pub debounce_time: u64,
+    pub exclude: Exclude,
+}
+
+#[derive(Clone, Deserialize)]
+pub struct Exclude {
+    pub paths: Vec<String>,
+    pub files: Vec<String>,
 }
 
 impl Config {
-    pub fn new(mut args: env::Args) -> Result<Config, &'static str> {
-        // skip binary
-        args.next();
+    pub fn new(config_path: String) -> Result<Config, Box<dyn error::Error>> {
+        let config: Config = toml::from_str(&std::fs::read_to_string(&config_path)?)?;
 
-        let store_path = match args.next() {
-            Some(arg) => arg,
-            None => return Err("Didn't get a store path"),
-        };
-
-        let watch_path = match args.next() {
-            Some(arg) => arg,
-            None => return Err("Didn't get a watch path"),
-        };
-
-        let debounce_time = match args.next() {
-            Some(arg) => arg,
-            None => return Err("Didn't get a debounce time"),
-        }
-        .parse::<u64>()
-        .unwrap();
-
-        Ok(Config {
-            store_path,
-            watch_path,
-            debounce_time: Duration::from_millis(debounce_time),
-        })
+        Ok(config)
     }
 }
-
-use std::{env, time::Duration};
-use flume;
 
 use event_handle::event_handle::{EventHandle, EventHandleCommunication};
 use filewatch::FileWatch;
@@ -53,13 +39,25 @@ impl AutoStash {
         communication: EventHandleCommunication,
         on_quit: flume::Receiver<()>,
     ) -> Result<AutoStash, Box<dyn std::error::Error>> {
-        let store = Store::new(config.store_path.as_str(), config.watch_path.as_str())?;
+        let store = Store::new(
+            config.store_path.as_str(),
+            config.watch_path.as_str(),
+            config.exclude.files.clone(),
+            config.exclude.paths.clone(),
+        )?;
 
         let mut event_handle = EventHandle::new(store, communication);
         event_handle.init_file_versions();
         event_handle.on_redo();
         event_handle.on_undo();
-        let watch = FileWatch::new(config.debounce_time, event_handle, on_quit)?;
+        event_handle.on_time_frame_change();
+        let watch = FileWatch::new(
+            Duration::from_millis(config.debounce_time),
+            event_handle,
+            on_quit,
+            config.exclude.files.clone(),
+            config.exclude.paths.clone(),
+        )?;
 
         Ok(AutoStash {
             watch,

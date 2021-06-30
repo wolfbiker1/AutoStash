@@ -1,0 +1,10 @@
+store_path = "demo.db"
+# The watch path has to be absolute!
+watch_path = "/home/benni/Coding/Demo"
+# Debounce time has to be in positive milli seconds
+debounce_time = 333
+[exclude]
+# Excluded paths have to be relative!
+paths = ["test2"]
+# Excluded files are recursive!
+files = ["test.json"]

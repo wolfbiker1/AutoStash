@@ -6,17 +6,6 @@ use std::io::{self, BufRead};
 
 pub static RFC3339: &str = "%Y-%m-%dT%H:%M:%S%.9f%:z";
 
-/*
-    SCENARIOS:
-    - Line is changed from 'a' to 'b'
-        - Simple: Create a new LineDifference with the same line_number, line set to 'a' and changed_line set to 'b' 
-    - Line is moved from line x to line y
-        - Tricky: Create a new LineDifference with the new line_number, line set to '' and changed_line set to 'a'
-        - If line is moved downwards, decrement all line_numbers of previous lines
-        - If line is moved upwards, increment all line_numbers of subsequent lines
-    - Line is removed
-*/
-
 #[derive(Serialize, Deserialize, Clone, Debug, Eq)]
 pub struct LineDifference {
     pub path: String,
@@ -58,7 +47,7 @@ impl PartialEq for LineDifference {
 
 pub fn find(
     path: &str,
-    prev_changes: &Vec<LineDifference>,
+    prev_changes: &[LineDifference],
 ) -> Result<Vec<LineDifference>, Box<dyn std::error::Error>> {
     let prev_changes = &unique_prev_changes(prev_changes);
     let mut changed_or_added_lines = find_changed_or_added_lines(path, prev_changes)?;
@@ -80,17 +69,17 @@ fn line_count(path: &str) -> Result<usize, Box<dyn std::error::Error>> {
     Ok(io::BufReader::new(&file).lines().count())
 }
 
-fn has_removed_lines(prev_changes: &Vec<LineDifference>, line_count: usize) -> bool {
+fn has_removed_lines(prev_changes: &[LineDifference], line_count: usize) -> bool {
     prev_changes.len() > line_count
 }
 
-fn unique_prev_changes(prev_changes: &Vec<LineDifference>) -> Vec<LineDifference> {
+fn unique_prev_changes(prev_changes: &[LineDifference]) -> Vec<LineDifference> {
     prev_changes
-        .into_iter()
+        .iter()
         .sorted_by(|a, b| sort(b.date_time.as_str(), a.date_time.as_str()))
         .dedup_by(|a, b| a.line_number.eq(&b.line_number))
         .sorted_by(|a, b| sort(a.date_time.as_str(), b.date_time.as_str()))
-        .map(|e| e.clone())
+        .cloned()
         .collect_vec()
 }
 
@@ -102,7 +91,7 @@ pub fn sort(date_time_a: &str, date_time_b: &str) -> std::cmp::Ordering {
 }
 
 fn find_removed_lines(
-    prev_changes: &Vec<LineDifference>,
+    prev_changes: &[LineDifference],
     line_count: usize,
 ) -> Vec<LineDifference> {
     prev_changes
@@ -122,7 +111,7 @@ fn find_removed_lines(
 
 fn find_changed_or_added_lines(
     path: &str,
-    prev_changes: &Vec<LineDifference>,
+    prev_changes: &[LineDifference],
 ) -> Result<Vec<LineDifference>, Box<dyn std::error::Error>> {
     let file = File::open(path)?;
     let token = LineDifference::token();
@@ -143,7 +132,7 @@ fn find_changed_or_added_lines(
 }
 
 fn find_changed_or_added_line(
-    prev_changes: &Vec<LineDifference>,
+    prev_changes: &[LineDifference],
     index: usize,
     path: &str,
     line: String,
@@ -153,8 +142,7 @@ fn find_changed_or_added_line(
         .iter()
         .find(|found| found.line_number.eq(&index));
 
-    if found_change.is_some() {
-        let found_change = found_change.unwrap();
+    if let Some(found_change) = found_change {
         if found_change.changed_line.ne(&line) {
             // changed line
             return LineDifference::new(
@@ -175,7 +163,10 @@ fn find_changed_or_added_line(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::{fs::{OpenOptions, remove_file}, io::Write};
+    use std::{
+        fs::{remove_file, OpenOptions},
+        io::Write,
+    };
 
     fn init(path: &str) -> Result<(), Box<dyn std::error::Error>> {
         let mut file = std::fs::File::create(path)?;

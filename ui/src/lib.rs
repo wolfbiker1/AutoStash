@@ -1,7 +1,7 @@
 pub mod ui;
 mod util;
 mod widgets;
-
+// use crossterm::style::{SetForegroundColor, SetBackgroundColor, ResetColor, Color, Attribute};
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event as CEvent, KeyCode},
     execute,
@@ -55,7 +55,7 @@ fn listen_to_key_press(ui: Arc<Mutex<UI>>, tick_rate: Duration) -> JoinHandle<()
                 if last_tick.elapsed() >= tick_rate {
                     last_tick = Instant::now();
                 }
-                if let Ok(_) = ui.communication.on_quit.try_recv() {
+                if ui.communication.on_quit.try_recv().is_ok() {
                     break;
                 }
             }
@@ -64,34 +64,23 @@ fn listen_to_key_press(ui: Arc<Mutex<UI>>, tick_rate: Duration) -> JoinHandle<()
 }
 
 fn on_versions(ui: Arc<Mutex<UI>>) -> JoinHandle<()> {
-    thread::spawn(move || {
-        loop {
-            let mut ui = ui.lock();
-            match ui.communication.on_file_versions.try_recv() {
-                Ok(res) => {
-                    ui.state.file_versions = res;
-                    // Non-lexical borrows don't exist in rust yet
-                    let state = &mut ui.state;
-                    let versions = &mut state.file_versions;
-                    let filenames = &mut state.filenames;
-                    versions.iter().for_each(|v| {
-                        filenames.add_item(v.path.clone());
-                        //ui.version_snapshots.add_item(string_to_static_str(String::from(r.datetime.to_string().clone())));
-                        // let diffs = r.changes.clone();
-                        // for d in diffs {
-                        // ui.version_snapshots.add_item(string_to_static_str(d.line));
-                        // }
-                    });
-                    // ui.title = string_to_static_str(String::from("bar"));
-                }
-                Err(e) => {
-                    //println!("{:?}", e);
-                }
-            }
-
-            if let Ok(_) = ui.communication.on_quit.try_recv() {
-                break;
-            }
+    thread::spawn(move || loop {
+        let mut ui = ui.lock();
+        if let Ok(res) = ui.communication.on_file_versions.try_recv() {
+            ui.state.file_versions = res.clone();
+            let state = &mut ui.state;
+            state.filenames.flush_display();
+            res.iter()
+                .filter(|file_versions| file_versions.is_some())
+                .for_each(|file_versions| {
+                    state
+                        .filenames
+                        .add_item(file_versions.as_ref().unwrap().path.clone());
+                });
+            ui.state.update_pane_content();
+        }
+        if ui.communication.on_quit.try_recv().is_ok() {
+            break;
         }
     })
 }
@@ -127,45 +116,45 @@ fn on_key(ui: Arc<Mutex<UI>>) -> JoinHandle<()> {
     thread::spawn(move || {
         loop {
             let mut ui = ui.lock();
-            match ui.communication.on_key.try_recv() {
-                Ok(ev) => {
-                    match ev {
-                        Event::Input(ev) => match ev.code {
-                            KeyCode::Char(c) => {
-                                ui.state.on_key(c);
-                            }
-                            // TODO
-                            KeyCode::PageDown => {
-                                ui.communication.on_undo("".to_string(), 1);
-                            }
-                            // TODO
-                            KeyCode::PageUp => {
-                                ui.communication.on_redo("".to_string(), 1);
-                            }
-                            KeyCode::Up => {
-                                ui.state.on_up();
-                            }
-                            KeyCode::Down => {
-                                ui.state.on_down();
-                            }
-                            KeyCode::Left => {
-                                ui.state.on_left();
-                            }
-                            KeyCode::Right => {
-                                ui.state.on_right();
-                            }
-                            KeyCode::Enter => {
-                                ui.state.on_enter();
-                            }
-                            _ => {}
-                        },
-                        Event::Tick => {
+
+            if let Ok(ev) = ui.communication.on_key.try_recv() {
+                match ev {
+                    Event::Input(ev) => match ev.code {
+                        KeyCode::Char(c) => {
+                            ui.state.on_key(c);
                         }
-                    }
+                        // TODO
+                        KeyCode::Esc => {
+                            let selected_path = ui.state.path_of_selected_file.clone();
+                            ui.communication.on_undo(selected_path, 1);
+                        }
+                        // TODO
+                        KeyCode::Tab => {
+                            let selected_path = ui.state.path_of_selected_file.clone();
+                            ui.communication.on_redo(selected_path, 1);
+                        }
+                        KeyCode::Up => {
+                            ui.state.on_up();
+                        }
+                        KeyCode::Down => {
+                            ui.state.on_down();
+                        }
+                        KeyCode::Left => {
+                            ui.state.on_left();
+                            let current_id = ui.state.tabs.get_index();
+                            ui.communication.on_timeslice_change(current_id);
+                        }
+                        KeyCode::Right => {
+                            ui.state.on_right();
+                            let current_id = ui.state.tabs.get_index();
+                            ui.communication.on_timeslice_change(current_id);
+                        }
+                        _ => {}
+                    },
+                    Event::Tick => {}
                 }
-                Err(_) => (),
             }
-            if let Ok(_) = ui.communication.on_quit.try_recv() {
+            if ui.communication.on_quit.try_recv().is_ok() {
                 break;
             }
         }
@@ -184,6 +173,11 @@ fn quit(mut terminal: Terminal<CrosstermBackend<Stdout>>) -> Result<(), Box<dyn 
     Ok(())
 }
 
+///
+/// sets up crossterm - terminal, inits event listeners,
+/// starts the rx-listeners, draws the terminal
+/// in an infinite loop
+///
 pub fn run(ui: UI) -> Result<(), Box<dyn Error>> {
     let terminal = init_terminal()?;
     let tick_rate = Duration::from_millis(300);
