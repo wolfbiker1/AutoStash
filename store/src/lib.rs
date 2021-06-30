@@ -64,11 +64,11 @@ pub mod store {
 
     impl TimeFrame {
         pub fn value(&self) -> i64 {
-            match &self {
-                &Self::MINUTE => 60,
-                &Self::HOUR => 60 * &Self::MINUTE.value(),
-                &Self::DAY => 24 * &Self::HOUR.value(),
-                &Self::WEEK => 7 * &Self::DAY.value(),
+            match self {
+                Self::MINUTE => 60,
+                Self::HOUR => 60 * Self::MINUTE.value(),
+                Self::DAY => 24 * Self::HOUR.value(),
+                Self::WEEK => 7 * Self::DAY.value(),
             }
         }
     }
@@ -101,7 +101,7 @@ pub mod store {
             .iter()
             .map(|version| HitsOfCode {
                 date: version.datetime.date(),
-                hits: version.changes.iter().count() as u64,
+                hits: version.changes.len() as u64,
             })
             .collect_vec()
             .into_iter()
@@ -133,7 +133,7 @@ pub mod store {
                 |entry: Result<DirEntry, walkdir::Error>| -> Result<(), Box<dyn error::Error>> {
                     let entry = entry?;
                     let path = entry.path();
-                    let path = path.to_str().unwrap_or_else(|| "couldn't find path");
+                    let path = path.to_str().unwrap_or("couldn't find path");
 
                     init_file_version_stack(path.to_string(), db);
                     init_file_version_marker(path.to_string(), db);
@@ -141,13 +141,13 @@ pub mod store {
                 },
             )
             .find(|e| e.is_err())
-            .unwrap_or_else(|| Ok(()))
+            .unwrap_or(Ok(()))
     }
 
     fn is_not_excluded(
         entry: &DirEntry,
-        excluded_files: &Vec<String>,
-        excluded_paths: &Vec<String>,
+        excluded_files: &[String],
+        excluded_paths: &[String],
     ) -> bool {
         entry.path().is_file()
             && !excluded_files.contains(
@@ -195,7 +195,7 @@ pub mod store {
                 .ok_or_else(|| "couldn't add line difference".into())
             })
             .find(|e| e.is_err())
-            .unwrap_or_else(|| Ok(()))
+            .unwrap_or(Ok(()))
     }
 
     fn load(store_path: &str) -> Result<PickleDb, Box<dyn error::Error>> {
@@ -229,7 +229,7 @@ pub mod store {
         pub fn store_changes(
             &mut self,
             path: &str,
-            changes: &Vec<LineDifference>,
+            changes: &[LineDifference],
         ) -> Result<(), Box<dyn error::Error>> {
             if !self.db.lexists(path) {
                 self.db.lcreate(path)?;
@@ -239,9 +239,9 @@ pub mod store {
                 let version_stack: VersionStack = version_stack.get_item().unwrap();
                 version_stack.path.eq(path)
             });
-            if version_stack.is_some() {
+            if let Some(version_stack) = version_stack {
                 let now = Utc::now().naive_utc().timestamp();
-                let mut version_stack: VersionStack = version_stack.unwrap().get_item().unwrap();
+                let mut version_stack: VersionStack = version_stack.get_item().unwrap();
                 let version_marker: VersionMarker =
                     self.get_version_marker(path.to_string()).unwrap();
 
@@ -282,9 +282,9 @@ pub mod store {
                         .timestamps
                         .iter()
                         .filter(|timestamp| {
-                            now.timestamp() - self.time_frame.value() < *timestamp.clone()
+                            now.timestamp() - self.time_frame.value() < *<&i64>::clone(timestamp)
                         })
-                        .map(|timestamp| timestamp.clone())
+                        .copied()
                         .collect_vec();
 
                     if timestamps.is_empty() {
@@ -296,9 +296,7 @@ pub mod store {
                     })
                 })
                 .map(|version_stack| -> Option<FileVersions> {
-                    if version_stack.is_none() {
-                        return None;
-                    }
+                    version_stack.as_ref()?;
                     let mut version_stack = version_stack.unwrap();
                     let path = version_stack.clone().path;
                     version_stack.timestamps.push(0);
@@ -322,7 +320,7 @@ pub mod store {
                     .map(|timestamp| {
                         let changes: Vec<LineDifference> = self
                             .get_file_changes::<LineDifference>(version_stack.path.as_str())
-                            .iter()
+                            .into_iter()
                             .sorted_by(|a, b| {
                                 diff::sort(b.date_time.as_str(), a.date_time.as_str())
                             })
@@ -334,13 +332,12 @@ pub mod store {
                                 .unwrap()
                                 .timestamp();
 
-                                diff_timestamp >= timestamp.clone()
+                                diff_timestamp >= *timestamp
                             })
-                            .map(|e| e.clone())
                             .collect_vec();
 
                         Version {
-                            datetime: NaiveDateTime::from_timestamp(timestamp.clone(), 0),
+                            datetime: NaiveDateTime::from_timestamp(*timestamp, 0),
                             changes,
                         }
                     })
@@ -356,7 +353,7 @@ pub mod store {
                 .map(|diff_pairs| {
                     let changes = self
                         .get_file_changes::<LineDifference>(version_stack.path.as_str())
-                        .iter()
+                        .into_iter()
                         .sorted_by(|a, b| diff::sort(b.date_time.as_str(), a.date_time.as_str()))
                         .filter(|e| {
                             let diff_timestamp =
@@ -364,14 +361,13 @@ pub mod store {
                                     .unwrap()
                                     .timestamp();
 
-                            diff_timestamp <= diff_pairs[0].clone()
+                            diff_timestamp <= *diff_pairs[0]
                                 && diff_timestamp > *diff_pairs[1]
                         })
-                        .map(|e| e.clone())
                         .collect_vec();
 
                     Version {
-                        datetime: NaiveDateTime::from_timestamp(diff_pairs[0].clone(), 0),
+                        datetime: NaiveDateTime::from_timestamp(*diff_pairs[0], 0),
                         changes,
                     }
                 })
@@ -390,7 +386,7 @@ pub mod store {
 
         fn undo(&mut self, path: String, count: usize) -> Result<(), Box<dyn error::Error>> {
             let versions = self.peek_versions(path.clone(), count, true);
-            let version_marker: VersionMarker = self.get_version_marker(path.to_string()).unwrap();
+            let version_marker: VersionMarker = self.get_version_marker(path).unwrap();
 
             self.decrement_version_marker_by(version_marker, count);
             self.undo_versions(versions)
@@ -414,7 +410,7 @@ pub mod store {
 
         fn redo(&mut self, path: String, count: usize) -> Result<(), Box<dyn error::Error>> {
             let versions = self.peek_versions(path.clone(), count, true);
-            let version_marker: VersionMarker = self.get_version_marker(path.to_string()).unwrap();
+            let version_marker: VersionMarker = self.get_version_marker(path).unwrap();
 
             self.increment_version_marker_by(version_marker, count);
             self.undo_versions(versions)
@@ -448,10 +444,9 @@ pub mod store {
 
             version_stack.timestamps = version_stack
                 .timestamps
-                .iter()
+                .into_iter()
                 .skip(pos)
                 .take(count)
-                .map(|timestamp| timestamp.clone())
                 .collect_vec();
 
             self.get_versions(
@@ -471,13 +466,13 @@ pub mod store {
             Ok(())
         }
 
-        fn undo_changes(&self, changes: &Vec<LineDifference>) -> Result<(), Box<dyn error::Error>> {
+        fn undo_changes(&self, changes: &[LineDifference]) -> Result<(), Box<dyn error::Error>> {
             let path = changes.first().unwrap().path.clone();
             let file = File::open(path.clone())?;
             let lines = io::BufReader::new(file).lines().collect_vec();
             let mut redone_lines: Vec<String> = vec![];
 
-            if lines.len() == 0 {
+            if lines.is_empty() {
                 redone_lines.push(
                     changes
                         .iter()
@@ -493,8 +488,7 @@ pub mod store {
                     .enumerate()
                     .map(|(index, line)| {
                         let found = changes.iter().find(|l| l.line_number.eq(&index));
-                        if found.is_some() {
-                            let found = found.unwrap();
+                        if let Some(found) = found {
                             return found.line.clone();
                         }
                         line.clone()
@@ -502,7 +496,7 @@ pub mod store {
                     .collect();
             }
 
-            let mut file = File::create(path.clone())?;
+            let mut file = File::create(path)?;
             file.write_all(redone_lines.join("\n").as_bytes())
                 .map_err(|err| err.into())
         }

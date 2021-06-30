@@ -4,7 +4,7 @@ use crate::Event;
 use crossterm::event::KeyEvent;
 use diff::LineDifference;
 use flume::{Receiver, Sender};
-use store::store::{FileVersions, TimeFrame, HitsOfCode};
+use store::store::{FileVersions, TimeFrame};
 use tui::text::Spans;
 
 static GRAPH_X_WIDTH: usize = 100;

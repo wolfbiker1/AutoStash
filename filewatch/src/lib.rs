@@ -1,7 +1,6 @@
 extern crate notify;
 
-use flume;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::mpsc::{channel, Receiver};
 use std::time::Duration;
 
@@ -30,8 +29,8 @@ impl FileWatch {
         Ok(FileWatch {
             event_handle,
             on_event,
-            watch_dog,
             on_quit,
+            watch_dog,
             excluded_files,
             excluded_paths,
         })
@@ -42,7 +41,7 @@ impl FileWatch {
         loop {
             self.listen()?;
 
-            if let Ok(_) = self.on_quit.try_recv() {
+            if self.on_quit.try_recv().is_ok() {
                 break;
             }
         }
@@ -70,18 +69,18 @@ impl FileWatch {
         Ok(())
     }
 
-    fn is_not_excluded(&self, path: &PathBuf) -> bool {
+    fn is_not_excluded(&self, path: &Path) -> bool {
         let is_not_excluded_file = self.is_not_excluded_file(path);
         let is_not_excluded_path = self.is_not_excluded_path(path);
         path.is_file() && is_not_excluded_file && is_not_excluded_path
     }
 
-    fn is_not_excluded_file(&self, path: &PathBuf) -> bool {
+    fn is_not_excluded_file(&self, path: &Path) -> bool {
         let file_name = path.file_name().unwrap().to_str().unwrap().to_string();
         !self.excluded_files.contains(&file_name)
     }
 
-    fn is_not_excluded_path(&self, path: &PathBuf) -> bool {
+    fn is_not_excluded_path(&self, path: &Path) -> bool {
         self.excluded_paths
             .iter()
             .all(|p| !path.parent().unwrap().ends_with(p))

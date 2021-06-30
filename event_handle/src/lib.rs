@@ -149,7 +149,7 @@ pub mod event_handle {
             let mut store = self.store.lock().unwrap();
 
             let changes = store.get_file_changes::<LineDifference>(path);
-            let changes = changes.iter().map(|change| {
+            let changes: Vec<LineDifference> = changes.iter().map(|change| {
                 LineDifference::new(
                     path.to_string(),
                     change.line_number,
