@@ -16,13 +16,13 @@ fn main() {
     let ui = UI::new(
         "".to_string(),
         UICommunication {
-            on_key,
             on_file_versions,
+            on_key,
             on_quit,
+            undo_to_handle,
+            redo_to_handle,
             time_frame_change_to_handle,
             key_to_ui,
-            redo_to_handle,
-            undo_to_handle,
             quit_to_ui,
             quit_to_handle,
         },
@@ -44,8 +44,8 @@ fn main() {
         &config,
         EventHandleCommunication {
             file_versions_to_ui,
-            on_redo,
             on_undo,
+            on_redo,
             on_time_frame_change,
         },
         on_handle_quit,
