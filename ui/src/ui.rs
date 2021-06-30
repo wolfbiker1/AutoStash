@@ -4,9 +4,10 @@ use crate::Event;
 use crossterm::event::KeyEvent;
 use diff::LineDifference;
 use flume::{Receiver, Sender};
-use store::store::{FileVersions, TimeFrame};
+use store::store::{FileVersions, TimeFrame, HitsOfCode};
 use tui::text::Spans;
 
+static GRAPH_X_WIDTH: usize = 100;
 ///
 /// contains channel pairs (tx & rx) which 
 /// are used for backend - frontend communication
@@ -82,6 +83,7 @@ pub struct UIState {
     pub filenames: StatefulList<String>,
     pub snapshots: StatefulList<String>,
     pub available_versions: Vec<String>,
+    pub hits_of_codes_data: Vec<(f64, f64)>,
     pub tabs: TabsState,
     pub pane_ptr: i8,
     pub id_of_selected_file: usize,
@@ -93,6 +95,19 @@ pub struct UIState {
 
 impl UIState {
 
+
+
+
+    pub fn update_hits_of_code(&mut self, id: usize/* , hits_of_code: Vec<HitsOfCode> */) {
+        let h = &self.file_versions[id].clone().unwrap();
+        let mut v: Vec<(f64, f64)> = Vec::new();
+        v.push((0.0, 50.03));
+        self.hits_of_codes_data = v;
+        // let number_of_measurements = hits_of_code.len();
+
+        // self.hits_of_codes_data.push((0.0, 50.03));
+    }
+
     ///
     /// loads metainfo for the selected file and places all snapshots into the
     /// snapshot pane
@@ -103,10 +118,35 @@ impl UIState {
                 self.id_of_selected_file = i;
         }
         let versions_for_selected_file = &self.file_versions[self.id_of_selected_file as usize];
+        
+        
         if versions_for_selected_file.is_none() {
             return;
         }
         let versions_for_selected_file = versions_for_selected_file.as_ref().unwrap();
+
+
+        // temporary solution: better shift into own function
+        let hits_of_code = versions_for_selected_file.hits_of_codes.clone();
+        self.hits_of_codes_data.clear();
+        if hits_of_code.len() < GRAPH_X_WIDTH {
+            for (x, y) in hits_of_code.iter().enumerate() {
+                self.hits_of_codes_data.push((x as f64, y.hits as f64));
+            }
+        } else {
+            let scale_factor: f64 = GRAPH_X_WIDTH as f64 / hits_of_code.len() as f64;
+            let mut x: f64 = 0.0;
+            for y in hits_of_code.iter() {
+                self.hits_of_codes_data.push((x, y.hits as f64));
+                x += scale_factor;
+            }   
+        }
+        // let mut v: Vec<(f64, f64)> = Vec::new();
+        // v.push((0.0, 50.03));
+        // self.hits_of_codes_data.push((0.0, 50.03));
+        // update hits-of-code graph each time a file is selected
+        // self.update_hits_of_code(self.id_of_selected_file as usize);
+
         self.path_of_selected_file = versions_for_selected_file.path.clone();
         for v in &versions_for_selected_file.versions {
             self.snapshots.add_item(v.datetime.to_string());
@@ -241,6 +281,7 @@ impl UI {
                 file_versions: Vec::new(),
                 snapshots: StatefulList::with_items(vec![]),
                 filenames: StatefulList::with_items(vec![String::from("loading...")]),
+                hits_of_codes_data: Vec::new(),
                 available_versions: Vec::new(),
                 processed_diffs: Vec::new(),
                 new_version: Vec::new(),
