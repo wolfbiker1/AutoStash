@@ -96,21 +96,10 @@ pub struct UIState {
 impl UIState {
 
 
-
-
-    pub fn update_hits_of_code(&mut self, id: usize/* , hits_of_code: Vec<HitsOfCode> */) {
-        let h = &self.file_versions[id].clone().unwrap();
-        let mut v: Vec<(f64, f64)> = Vec::new();
-        v.push((0.0, 50.03));
-        self.hits_of_codes_data = v;
-        // let number_of_measurements = hits_of_code.len();
-
-        // self.hits_of_codes_data.push((0.0, 50.03));
-    }
-
     ///
     /// loads metainfo for the selected file and places all snapshots into the
     /// snapshot pane
+    /// the hits-of-code graph also gets updated on each selection.
     /// 
     pub fn update_file_pane(&mut self) {
         self.snapshots.flush_display();
@@ -141,12 +130,6 @@ impl UIState {
                 x += scale_factor;
             }   
         }
-        // let mut v: Vec<(f64, f64)> = Vec::new();
-        // v.push((0.0, 50.03));
-        // self.hits_of_codes_data.push((0.0, 50.03));
-        // update hits-of-code graph each time a file is selected
-        // self.update_hits_of_code(self.id_of_selected_file as usize);
-
         self.path_of_selected_file = versions_for_selected_file.path.clone();
         for v in &versions_for_selected_file.versions {
             self.snapshots.add_item(v.datetime.to_string());
