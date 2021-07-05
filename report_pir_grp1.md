@@ -19,3 +19,9 @@ Auch bei den Channels musste von der Standard-Bibliothek abgewichen werden, da d
 Bis jetzt kann das Tool eben implizit Aenderungen abspeichern und diese zuruecksetzen/wiederherstellen.
 Dies unterstuetzt zusaetzlich eine grafische Oberflaeche die noch die "Hits-of-Code" Metrik anzeigt.
 Ausserdem kann man in einer Konfigurationsdatei auswaehlen welche Pfade und Dateien vom ganzen Ueberwachungsprozess ausgeschlossen sind.
+
+
+# Hinweise zum Start
+Zum Starten muss die config.toml um den watch-path und den store-path ergaenzt werden. Es koennen auch 
+Dateien angegeben werden, die ignoriert werden sollen. Die Datei ist mit einem Beispiel versehen. Vor dem
+Starten bitte anpassen!
