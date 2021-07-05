@@ -2,6 +2,7 @@ pub mod event_handle {
     use diff::LineDifference;
     use flume::{Receiver, Sender};
     use notify::DebouncedEvent;
+    use std::path::Path;
     use std::path::PathBuf;
     use std::process;
     use std::sync::{Arc, Mutex};
@@ -88,9 +89,13 @@ pub mod event_handle {
 
         pub fn handle(&mut self, event: DebouncedEvent) -> Result<(), Box<dyn std::error::Error>> {
             let path = self.to_path(&event)?;
+            if path.is_none() {
+                return Ok(());
+            }
+            let path = path.unwrap();
             if path.is_file() {
-                self.on_modification(&event)?;
-                self.on_removal(&event)?;
+                self.on_modification(&event, &path)?;
+                self.on_removal(&event, &path)?;
             }
             Ok(())
         }
@@ -98,40 +103,40 @@ pub mod event_handle {
         fn on_modification(
             &mut self,
             event: &DebouncedEvent,
+            path: &Path,
         ) -> Result<(), Box<dyn std::error::Error>> {
-            if self.is_modification(&event) {
-                return self.on_file_change(&event);
+            if self.is_modification(event) {
+                return self.on_file_change(path);
             }
             Ok(())
         }
 
-        fn on_removal(&self, event: &DebouncedEvent) -> Result<(), Box<dyn std::error::Error>> {
-            if self.is_removed(&event) {
-                self.on_file_remove(&event)?;
+        fn on_removal(&self, event: &DebouncedEvent, path: &Path) -> Result<(), Box<dyn std::error::Error>> {
+            if self.is_removed(event) {
+                self.on_file_remove(path)?;
             }
 
             Ok(())
         }
 
-        fn to_path(&self, event: &DebouncedEvent) -> Result<PathBuf, Box<dyn std::error::Error>> {
+        pub fn to_path(&self, event: &DebouncedEvent) -> Result<Option<PathBuf>, Box<dyn std::error::Error>> {
             match event {
-                DebouncedEvent::Write(p) => Ok(p.clone()),
-                DebouncedEvent::Remove(p) => Ok(p.clone()),
-                DebouncedEvent::NoticeWrite(p) => Ok(p.clone()),
+                DebouncedEvent::Write(p) => Ok(Some(p.clone())),
+                DebouncedEvent::Remove(p) => Ok(Some(p.clone())),
+                DebouncedEvent::NoticeWrite(p) => Ok(Some(p.clone())),
                 DebouncedEvent::Error(e, _) => Err(e.to_string().into()),
-                _ => Err(format!("Event is not handled yet: {:?}", event).into()),
+                _ => Ok(None),
             }
         }
 
         fn on_file_change(
             &mut self,
-            event: &DebouncedEvent,
+            path: &Path,
         ) -> Result<(), Box<dyn std::error::Error>> {
-            let path = self.to_path(event).unwrap();
-            let path = path.as_path().to_str().unwrap();
+            let path = path.to_str().unwrap();
 
             let mut store = self.store.lock().unwrap();
-
+            store.create_new_file_entry(path)?;
             let changes = store.get_file_changes::<LineDifference>(path);
             let changes = diff::find(path, &changes)?;
             let stored = store.store_changes(path, &changes);
@@ -142,9 +147,8 @@ pub mod event_handle {
         }
         
 
-        fn on_file_remove(&self, event: &DebouncedEvent) -> Result<(), Box<dyn std::error::Error>> {
-            let path = self.to_path(event).unwrap();
-            let path = path.as_path().to_str().unwrap();
+        fn on_file_remove(&self, path: &Path) -> Result<(), Box<dyn std::error::Error>> {
+            let path = path.to_str().unwrap();
 
             let mut store = self.store.lock().unwrap();
 

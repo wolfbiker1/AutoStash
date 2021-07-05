@@ -1,6 +1,6 @@
 extern crate notify;
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::mpsc::{channel, Receiver};
 use std::time::Duration;
 
@@ -61,7 +61,11 @@ impl FileWatch {
     }
 
     fn handle(&mut self, event: DebouncedEvent) -> Result<(), Box<dyn std::error::Error>> {
-        let path = self.to_path(&event)?;
+        let path = self.event_handle.to_path(&event)?;
+        if path.is_none() {
+            return Ok(());
+        }
+        let path = path.unwrap();
         if self.is_not_excluded(&path) {
             return self.event_handle.handle(event);
         }
@@ -84,15 +88,5 @@ impl FileWatch {
         self.excluded_paths
             .iter()
             .all(|p| !path.parent().unwrap().ends_with(p))
-    }
-
-    fn to_path(&self, event: &DebouncedEvent) -> Result<PathBuf, Box<dyn std::error::Error>> {
-        match event {
-            DebouncedEvent::Write(p) => Ok(p.clone()),
-            DebouncedEvent::Remove(p) => Ok(p.clone()),
-            DebouncedEvent::NoticeWrite(p) => Ok(p.clone()),
-            DebouncedEvent::Error(e, _) => Err(e.to_string().into()),
-            _ => Err(format!("Event is not handled yet: {:?}", event).into()),
-        }
     }
 }

@@ -231,9 +231,6 @@ pub mod store {
             path: &str,
             changes: &[LineDifference],
         ) -> Result<(), Box<dyn error::Error>> {
-            if !self.db.lexists(path) {
-                self.db.lcreate(path)?;
-            }
             self.db.lextend(path, changes);
             let version_stack = self.db.liter(FILE_VERSION_STACK).find(|version_stack| {
                 let version_stack: VersionStack = version_stack.get_item().unwrap();
@@ -414,6 +411,14 @@ pub mod store {
 
             self.increment_version_marker_by(version_marker, count);
             self.undo_versions(versions)
+        }
+
+        pub fn create_new_file_entry(&mut self, path: &str) -> Result<(), Box<dyn error::Error>> {
+            if !self.db.lexists(path) {
+                self.db.lcreate(path)?;
+            }
+
+            Ok(())
         }
 
         pub fn get_file_changes<T: DeserializeOwned + std::fmt::Debug>(
